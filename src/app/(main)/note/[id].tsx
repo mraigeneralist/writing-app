@@ -151,7 +151,12 @@ function Editor({
           blurOnSubmit={false}
         />
         <View style={styles.body}>
-          <RichText editor={editor} />
+          <RichText
+            editor={editor}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            overScrollMode="never"
+          />
         </View>
         <NotionToolbar editor={editor} />
       </KeyboardAvoidingView>
