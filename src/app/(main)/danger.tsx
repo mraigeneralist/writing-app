@@ -215,7 +215,7 @@ export default function DangerScreen() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.writingHeader}>
           <Text style={styles.timer}>
@@ -291,6 +291,7 @@ const styles = StyleSheet.create({
   editorWrap: {
     flex: 1,
     backgroundColor: palette.surface,
+    overflow: 'hidden',
   },
   editor: {
     flex: 1,

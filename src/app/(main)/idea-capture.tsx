@@ -61,7 +61,7 @@ export default function IdeaCaptureScreen() {
       />
       <KeyboardAvoidingView
         style={styles.page}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TextInput
           ref={inputRef}
