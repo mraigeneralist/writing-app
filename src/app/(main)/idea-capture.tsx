@@ -1,93 +1,262 @@
-import { Stack, useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  FlatList,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { palette, space } from '@/theme';
 
+type Idea = { id: string; content: string; created_at: string };
+
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+  const diff = now.getTime() - d.getTime();
+  if (diff < 7 * 24 * 60 * 60 * 1000) {
+    return d.toLocaleDateString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  }
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function dayLabel(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) return 'Today';
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+type Row =
+  | { kind: 'idea'; idea: Idea }
+  | { kind: 'day'; label: string; key: string };
+
+function buildRows(ideas: Idea[]): Row[] {
+  // ideas come newest-first; we render oldest at top, newest at bottom (chat order).
+  const ascending = [...ideas].reverse();
+  const rows: Row[] = [];
+  let lastDay = '';
+  for (const idea of ascending) {
+    const label = dayLabel(idea.created_at);
+    if (label !== lastDay) {
+      rows.push({ kind: 'day', label, key: `day-${label}-${idea.id}` });
+      lastDay = label;
+    }
+    rows.push({ kind: 'idea', idea });
+  }
+  return rows;
+}
+
 export default function IdeaCaptureScreen() {
-  const router = useRouter();
-  const inputRef = useRef<TextInput>(null);
-  const [content, setContent] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [kbHeight, setKbHeight] = useState(0);
+  const listRef = useRef<FlatList<Row>>(null);
 
   useEffect(() => {
-    const id = setTimeout(() => inputRef.current?.focus(), 100);
-    return () => clearTimeout(id);
+    async function load() {
+      const { data } = await supabase
+        .from('ideas')
+        .select('id,content,created_at')
+        .order('created_at', { ascending: false });
+      if (data) setIdeas(data as Idea[]);
+      setLoading(false);
+    }
+    load();
   }, []);
 
-  async function save() {
-    const trimmed = content.trim();
-    if (!trimmed) {
-      router.back();
-      return;
-    }
-    setSaving(true);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  // Scroll to bottom whenever new content arrives or keyboard height changes.
+  useEffect(() => {
+    const id = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
+    return () => clearTimeout(id);
+  }, [ideas, kbHeight]);
+
+  async function send() {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) {
-      setSaving(false);
+      setSending(false);
       return;
     }
-    await supabase.from('ideas').insert({ content: trimmed, user_id: userId });
-    setSaving(false);
-    router.back();
+    const { data, error } = await supabase
+      .from('ideas')
+      .insert({ content: trimmed, user_id: userId })
+      .select('id,content,created_at')
+      .single();
+    setSending(false);
+    if (error || !data) return;
+    setIdeas((prev) => [data as Idea, ...prev]);
+    setText('');
   }
+
+  const rows = buildRows(ideas);
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerStyle: { backgroundColor: palette.surface },
+          headerStyle: { backgroundColor: palette.bg },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: palette.surface },
-          headerRight: () =>
-            saving ? (
-              <ActivityIndicator size="small" color={palette.textMuted} />
-            ) : (
-              <Pressable onPress={save} hitSlop={8}>
-                <Text style={styles.saveLink}>Save</Text>
-              </Pressable>
-            ),
+          contentStyle: { backgroundColor: palette.bg },
+          headerTitle: 'Ideas',
+          headerTitleStyle: { fontSize: 17, fontWeight: '700', color: palette.text },
         }}
       />
-      <KeyboardAvoidingView
-        style={styles.page}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          placeholder="What's on your mind?"
-          placeholderTextColor={palette.textMuted}
-          multiline
-          value={content}
-          onChangeText={setContent}
-          textAlignVertical="top"
-        />
-      </KeyboardAvoidingView>
+      <View style={[styles.page, { paddingBottom: kbHeight }]}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={palette.textMuted} />
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={rows}
+            keyExtractor={(r) => (r.kind === 'idea' ? r.idea.id : r.key)}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyTitle}>Note to self</Text>
+                <Text style={styles.emptySub}>
+                  Capture a thought. Throw it at the wall. Come back to it later.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) =>
+              item.kind === 'day' ? (
+                <Text style={styles.daySep}>{item.label}</Text>
+              ) : (
+                <View style={styles.bubbleRow}>
+                  <View style={styles.bubble}>
+                    <Text style={styles.bubbleText}>{item.idea.content}</Text>
+                    <Text style={styles.bubbleTime}>{formatTime(item.idea.created_at)}</Text>
+                  </View>
+                </View>
+              )
+            }
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+          />
+        )}
+
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.input}
+            value={text}
+            onChangeText={setText}
+            placeholder="Capture an idea…"
+            placeholderTextColor={palette.textMuted}
+            multiline
+          />
+          <Pressable
+            onPress={send}
+            disabled={!text.trim() || sending}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              (!text.trim() || sending) && { opacity: 0.4 },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Feather name="arrow-up" size={20} color="#fff" />
+            )}
+          </Pressable>
+        </View>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: palette.surface },
+  page: { flex: 1, backgroundColor: palette.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 12, flexGrow: 1 },
+
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: palette.text, marginBottom: 6 },
+  emptySub: { fontSize: 14, color: palette.textMuted, textAlign: 'center', lineHeight: 20 },
+
+  daySep: {
+    alignSelf: 'center',
+    fontSize: 12,
+    color: palette.textMuted,
+    fontWeight: '600',
+    marginVertical: 14,
+  },
+
+  bubbleRow: {
+    alignSelf: 'flex-end',
+    marginBottom: 6,
+    maxWidth: '85%',
+  },
+  bubble: {
+    backgroundColor: palette.text,
+    borderRadius: 18,
+    borderBottomRightRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  bubbleText: { color: '#fff', fontSize: 16, lineHeight: 22 },
+  bubbleTime: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 4, alignSelf: 'flex-end' },
+
+  composer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.border,
+    backgroundColor: palette.bg,
+  },
   input: {
     flex: 1,
-    fontSize: 19,
-    lineHeight: 28,
+    minHeight: 40,
+    maxHeight: 140,
+    backgroundColor: '#F4F4F2',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    fontSize: 16,
     color: palette.text,
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-    paddingBottom: space.md,
   },
-  saveLink: { color: palette.accent, fontSize: 16, fontWeight: '600' },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: palette.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
