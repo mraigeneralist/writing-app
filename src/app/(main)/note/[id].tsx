@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { RichText, useEditorBridge } from '@10play/tentap-editor';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NotionToolbar } from '@/components/NotionToolbar';
 import { notionEditorCss } from '@/lib/editor-styles';
@@ -82,6 +83,7 @@ function Editor({
   const [savedHtml, setSavedHtml] = useState(initial.html);
   const [saving, setSaving] = useState(false);
   const [kbHeight, setKbHeight] = useState(0);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -144,7 +146,7 @@ function Editor({
           ),
         }}
       />
-      <View style={[styles.page, { paddingBottom: kbHeight }]}>
+      <View style={[styles.page, { paddingBottom: Math.max(kbHeight, insets.bottom) }]}>
         <TextInput
           style={styles.title}
           placeholder="Untitled"

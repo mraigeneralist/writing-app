@@ -13,8 +13,10 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { supabase } from '@/lib/supabase';
-import { palette, space } from '@/theme';
+import { palette } from '@/theme';
 
 type Idea = { id: string; content: string; created_at: string };
 
@@ -68,6 +70,7 @@ export default function IdeaCaptureScreen() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [kbHeight, setKbHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Row>>(null);
 
   useEffect(() => {
@@ -133,7 +136,7 @@ export default function IdeaCaptureScreen() {
           headerTitleStyle: { fontSize: 17, fontWeight: '700', color: palette.text },
         }}
       />
-      <View style={[styles.page, { paddingBottom: kbHeight }]}>
+      <View style={[styles.page, { paddingBottom: Math.max(kbHeight, insets.bottom) }]}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={palette.textMuted} />
