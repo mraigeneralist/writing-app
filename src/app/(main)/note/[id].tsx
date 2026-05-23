@@ -14,7 +14,7 @@ import {
 import { RichText, Toolbar, useEditorBridge } from '@10play/tentap-editor';
 
 import { supabase } from '@/lib/supabase';
-import { palette, space } from '@/theme';
+import { palette } from '@/theme';
 
 export default function NoteEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -108,9 +108,10 @@ function Editor({
     <>
       <Stack.Screen
         options={{
-          headerStyle: { backgroundColor: palette.surface },
+          headerStyle: { backgroundColor: palette.bg },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: palette.surface },
+          contentStyle: { backgroundColor: palette.bg },
+          headerTitle: '',
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {saving && <ActivityIndicator size="small" color={palette.textMuted} />}
@@ -129,13 +130,13 @@ function Editor({
           value={title}
           onChangeText={setTitle}
           multiline
+          scrollEnabled={false}
         />
-        <View style={styles.editor}>
+        <View style={styles.body}>
           <RichText editor={editor} />
         </View>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.toolbarWrap}
         >
           <Toolbar editor={editor} />
         </KeyboardAvoidingView>
@@ -145,17 +146,17 @@ function Editor({
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface },
-  page: { flex: 1, backgroundColor: palette.surface },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.bg },
+  page: { flex: 1, backgroundColor: palette.bg },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '700',
+    lineHeight: 42,
     color: palette.text,
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
-    paddingBottom: space.sm,
-    lineHeight: 38,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: palette.bg,
   },
-  editor: { flex: 1, paddingHorizontal: 0 },
-  toolbarWrap: { width: '100%' },
+  body: { flex: 1, backgroundColor: palette.bg },
 });

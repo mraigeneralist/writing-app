@@ -1,15 +1,15 @@
 import { Platform } from 'react-native';
 
 export const palette = {
-  bg: '#FAFAF7',
+  bg: '#FFFFFF',
   surface: '#FFFFFF',
-  text: '#1A1A1A',
-  textMuted: '#6B6B6B',
-  border: '#ECECEA',
-  accent: '#E94E3B',
-  accentMuted: '#FDECE9',
-  danger: '#E94E3B',
-  success: '#2F855A',
+  text: '#37352F',
+  textMuted: '#9B9A97',
+  border: '#EDECE9',
+  accent: '#2EAADC',
+  accentMuted: '#E7F3F8',
+  danger: '#E03E3E',
+  success: '#0F7B6C',
 } as const;
 
 export const space = {
