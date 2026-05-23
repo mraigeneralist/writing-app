@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
@@ -10,9 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 
-import { FloatingActionButton } from '@/components/FloatingActionButton';
 import { supabase } from '@/lib/supabase';
 import { palette, space } from '@/theme';
 
@@ -27,22 +26,28 @@ type Idea = { id: string; content: string; created_at: string };
 
 function previewFromContent(c: Note['content']) {
   if (!c || !c.html) return '';
-  return c.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
+  return c.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
 }
 
 function formatDate(iso?: string) {
   if (!iso) return '';
   const d = new Date(iso);
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
+  const diff = now.getTime() - d.getTime();
   const day = 24 * 60 * 60 * 1000;
-  if (diffMs < day && d.toDateString() === now.toDateString()) {
+  if (d.toDateString() === now.toDateString()) {
     return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
-  if (diffMs < 7 * day) {
-    return d.toLocaleDateString([], { weekday: 'short' });
-  }
+  if (diff < 7 * day) return d.toLocaleDateString([], { weekday: 'short' });
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function todayLabel() {
+  return new Date().toLocaleDateString([], {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 export default function HomeScreen() {
@@ -62,11 +67,7 @@ export default function HomeScreen() {
     setLoading(false);
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { load(); }, []));
 
   async function onRefresh() {
     setRefreshing(true);
@@ -91,18 +92,63 @@ export default function HomeScreen() {
     await supabase.auth.signOut();
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Writeflow</Text>
-        <Pressable onPress={signOut} hitSlop={12} style={styles.signOut}>
+  const header = (
+    <View>
+      <View style={styles.headerTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.date}>{todayLabel()}</Text>
+          <Text style={styles.heading}>Writeflow</Text>
+        </View>
+        <Pressable onPress={signOut} hitSlop={12} style={styles.iconBtn}>
           <Feather name="log-out" size={18} color={palette.textMuted} />
         </Pressable>
       </View>
 
+      <View style={styles.actions}>
+        <ActionCard
+          icon="edit-3"
+          label="New note"
+          onPress={newNote}
+        />
+        <ActionCard
+          icon="zap"
+          label="Idea"
+          onPress={() => router.push('/(main)/idea-capture')}
+        />
+        <ActionCard
+          icon="clock"
+          label="Danger"
+          accent
+          onPress={() => router.push('/(main)/danger')}
+        />
+      </View>
+
+      {ideas.length > 0 && (
+        <View style={styles.ideasBlock}>
+          <Text style={styles.section}>Recent ideas</Text>
+          {ideas.slice(0, 4).map((i) => (
+            <View key={i.id} style={styles.ideaRow}>
+              <View style={styles.bullet} />
+              <Text style={styles.ideaText} numberOfLines={2}>
+                {i.content}
+              </Text>
+            </View>
+          ))}
+          {ideas.length > 4 && (
+            <Text style={styles.moreLabel}>+ {ideas.length - 4} more</Text>
+          )}
+        </View>
+      )}
+
+      <Text style={styles.section}>Notes</Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={palette.accent} />
+          <ActivityIndicator color={palette.textMuted} />
         </View>
       ) : (
         <FlatList
@@ -110,37 +156,8 @@ export default function HomeScreen() {
           keyExtractor={(n) => n.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.textMuted} />}
-          ListHeaderComponent={
-            <View>
-              <Pressable
-                style={({ pressed }) => [styles.dangerRow, pressed && styles.pressed]}
-                onPress={() => router.push('/(main)/danger')}
-              >
-                <View style={styles.dangerIcon}>
-                  <Feather name="zap" size={16} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dangerTitle}>Danger Mode</Text>
-                  <Text style={styles.dangerSubtitle}>Write without stopping</Text>
-                </View>
-                <Feather name="chevron-right" size={18} color={palette.textMuted} />
-              </Pressable>
-
-              {ideas.length > 0 && (
-                <>
-                  <Text style={styles.section}>Ideas</Text>
-                  {ideas.slice(0, 6).map((i) => (
-                    <View key={i.id} style={styles.ideaRow}>
-                      <View style={styles.bullet} />
-                      <Text style={styles.ideaText}>{i.content}</Text>
-                    </View>
-                  ))}
-                </>
-              )}
-
-              <Text style={styles.section}>Notes</Text>
-            </View>
-          }
+          ListHeaderComponent={header}
+          ItemSeparatorComponent={() => <View style={styles.divider} />}
           renderItem={({ item }) => (
             <Pressable
               style={({ pressed }) => [styles.noteRow, pressed && styles.pressed]}
@@ -160,102 +177,161 @@ export default function HomeScreen() {
             </Pressable>
           )}
           ListEmptyComponent={
-            <Text style={styles.empty}>No notes yet. Tap + to create one.</Text>
+            <Pressable onPress={newNote} style={styles.emptyCard}>
+              <Feather name="edit-3" size={22} color={palette.textMuted} />
+              <Text style={styles.emptyText}>Start your first note</Text>
+            </Pressable>
           }
         />
       )}
 
-      <FloatingActionButton
-        actions={[
-          { label: 'New note', onPress: newNote },
-          { label: 'Capture idea', onPress: () => router.push('/(main)/idea-capture') },
-          { label: 'Danger Mode', onPress: () => router.push('/(main)/danger'), tint: palette.accent },
-        ]}
-      />
+      <Pressable
+        onPress={newNote}
+        style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
+      >
+        <Feather name="plus" size={26} color="#fff" />
+      </Pressable>
     </SafeAreaView>
+  );
+}
+
+function ActionCard({
+  icon,
+  label,
+  onPress,
+  accent,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  onPress: () => void;
+  accent?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionCard,
+        accent && styles.actionCardAccent,
+        pressed && { opacity: 0.6 },
+      ]}
+    >
+      <Feather
+        name={icon}
+        size={20}
+        color={accent ? '#fff' : palette.text}
+      />
+      <Text style={[styles.actionLabel, accent && { color: '#fff' }]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: palette.bg },
-  header: {
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
-    paddingBottom: space.md,
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: space.lg, paddingBottom: 120 },
+
+  headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingTop: space.sm,
+    paddingBottom: space.lg,
+  },
+  date: { fontSize: 13, color: palette.textMuted, fontWeight: '500', marginBottom: 2 },
+  heading: { fontSize: 34, fontWeight: '700', color: palette.text, letterSpacing: -0.6 },
+  iconBtn: { padding: 6 },
+
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: space.xl,
+  },
+  actionCard: {
+    flex: 1,
+    aspectRatio: 1.15,
+    borderRadius: 14,
+    backgroundColor: '#F7F6F3',
+    padding: 14,
     justifyContent: 'space-between',
   },
-  heading: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: palette.text,
-    letterSpacing: -0.5,
-  },
-  signOut: { padding: 6 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { paddingHorizontal: space.lg, paddingBottom: 140 },
-
-  dangerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: space.md,
-    backgroundColor: '#FBFAF7',
-  },
-  dangerIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  actionCardAccent: {
     backgroundColor: palette.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
   },
-  dangerTitle: { fontSize: 15, fontWeight: '600', color: palette.text },
-  dangerSubtitle: { fontSize: 13, color: palette.textMuted, marginTop: 1 },
+  actionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: palette.text,
+  },
 
+  ideasBlock: { marginBottom: space.xl },
   section: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: palette.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginTop: space.lg,
     marginBottom: space.sm,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
-
   ideaRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
   },
   bullet: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: palette.textMuted,
-    marginTop: 9,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: palette.text,
+    marginTop: 11,
     marginRight: 12,
   },
   ideaText: { flex: 1, fontSize: 15, lineHeight: 22, color: palette.text },
+  moreLabel: {
+    fontSize: 13,
+    color: palette.textMuted,
+    fontWeight: '500',
+    paddingHorizontal: 4,
+    marginTop: 6,
+  },
 
   noteRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
     gap: 12,
   },
   pressed: { backgroundColor: '#F4F4F2' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: palette.border },
   noteTitle: { fontSize: 16, fontWeight: '600', color: palette.text },
-  notePreview: { fontSize: 13, color: palette.textMuted, marginTop: 2 },
+  notePreview: { fontSize: 13, color: palette.textMuted, marginTop: 3 },
   noteDate: { fontSize: 12, color: palette.textMuted, marginLeft: 8 },
 
-  empty: { fontSize: 14, color: palette.textMuted, textAlign: 'center', marginTop: space.xl },
+  emptyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 18,
+    borderRadius: 12,
+    backgroundColor: '#F7F6F3',
+  },
+  emptyText: { fontSize: 15, color: palette.textMuted, fontWeight: '500' },
+
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: palette.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 8,
+  },
 });
