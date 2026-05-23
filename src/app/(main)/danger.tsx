@@ -18,6 +18,7 @@ import { palette, radius, space, type as t } from '@/theme';
 const IDLE_LIMIT_MS = 3000;
 const FADE_DURATION_MS = 1000;
 const DURATIONS = [
+  { label: '1 min', minutes: 1 },
   { label: '3 min', minutes: 3 },
   { label: '5 min', minutes: 5 },
   { label: '10 min', minutes: 10 },
