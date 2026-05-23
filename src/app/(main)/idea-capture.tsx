@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -12,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
@@ -69,9 +68,13 @@ export default function IdeaCaptureScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [kbHeight, setKbHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Row>>(null);
+  const keyboard = useAnimatedKeyboard();
+
+  const pageStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(keyboard.height.value, insets.bottom),
+  }));
 
   useEffect(() => {
     async function load() {
@@ -85,22 +88,11 @@ export default function IdeaCaptureScreen() {
     load();
   }, []);
 
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  // Scroll to bottom whenever new content arrives or keyboard height changes.
+  // Scroll to bottom whenever new content arrives.
   useEffect(() => {
     const id = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
     return () => clearTimeout(id);
-  }, [ideas, kbHeight]);
+  }, [ideas]);
 
   async function send() {
     const trimmed = text.trim();
@@ -136,7 +128,7 @@ export default function IdeaCaptureScreen() {
           headerTitleStyle: { fontSize: 17, fontWeight: '700', color: palette.text },
         }}
       />
-      <View style={[styles.page, { paddingBottom: Math.max(kbHeight, insets.bottom) }]}>
+      <Animated.View style={[styles.page, pageStyle]}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={palette.textMuted} />
@@ -196,7 +188,7 @@ export default function IdeaCaptureScreen() {
             )}
           </Pressable>
         </View>
-      </View>
+      </Animated.View>
     </>
   );
 }

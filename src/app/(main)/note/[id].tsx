@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { RichText, useEditorBridge } from '@10play/tentap-editor';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NotionToolbar } from '@/components/NotionToolbar';
@@ -82,19 +81,12 @@ function Editor({
   const [savedTitle, setSavedTitle] = useState(initial.title);
   const [savedHtml, setSavedHtml] = useState(initial.html);
   const [saving, setSaving] = useState(false);
-  const [kbHeight, setKbHeight] = useState(0);
   const insets = useSafeAreaInsets();
+  const keyboard = useAnimatedKeyboard();
 
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
+  const pageStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(keyboard.height.value, insets.bottom),
+  }));
 
   const editor = useEditorBridge({
     autofocus: false,
@@ -146,7 +138,7 @@ function Editor({
           ),
         }}
       />
-      <View style={[styles.page, { paddingBottom: Math.max(kbHeight, insets.bottom) }]}>
+      <Animated.View style={[styles.page, pageStyle]}>
         <TextInput
           style={styles.title}
           placeholder="Untitled"
@@ -166,7 +158,7 @@ function Editor({
           />
         </View>
         <NotionToolbar editor={editor} />
-      </View>
+      </Animated.View>
     </>
   );
 }
