@@ -112,10 +112,17 @@ function Editor({
   }));
 
   const editor = useEditorBridge({
-    autofocus: false,
+    autofocus: true,
     avoidIosKeyboard: true,
     initialContent: buildInitial(initial.title, initial.html),
   });
+
+  // Defensive focus call — autofocus alone is sometimes lost during the screen
+  // transition on Android, so we re-focus after the WebView has mounted.
+  useEffect(() => {
+    const id = setTimeout(() => editor.focus(), 400);
+    return () => clearTimeout(id);
+  }, [editor]);
 
   useEffect(() => {
     const attempts = [0, 50, 100, 200, 400, 800, 1500];
