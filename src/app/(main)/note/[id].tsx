@@ -144,23 +144,25 @@ function Editor({
           placeholder="Untitled"
           placeholderTextColor="#C5C4C0"
           value={title}
-          onChangeText={(text) => {
+          onChangeText={async (text) => {
             if (text.includes('\n')) {
               setTitle(text.replace(/\n/g, ''));
               titleRef.current?.blur();
-              setTimeout(() => {
-                // Insert an empty paragraph at the top of the body and put cursor there,
-                // matching Notion's behavior when Enter is pressed in the title.
-                editor.injectJS(`
-                  try {
-                    if (typeof editor !== 'undefined' && editor.commands) {
-                      editor.commands.insertContentAt(0, '<p></p>');
-                      editor.commands.focus(1);
-                    }
-                  } catch (e) {}
-                `);
-                editor.focus();
-              }, 30);
+              const currentHtml = await editor.getHTML();
+              const isBodyEmpty =
+                !currentHtml ||
+                currentHtml === '<p></p>' ||
+                currentHtml.replace(/<p>\s*<\/p>/g, '').trim() === '';
+              if (isBodyEmpty) {
+                setTimeout(() => editor.focus(), 30);
+              } else {
+                // Prepend an empty paragraph and place cursor inside it (Notion behavior).
+                editor.setContent('<p></p>' + currentHtml);
+                setTimeout(() => {
+                  editor.setSelection(1, 1);
+                  editor.focus();
+                }, 60);
+              }
             } else {
               setTitle(text);
             }
