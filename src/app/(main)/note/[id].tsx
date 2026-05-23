@@ -118,7 +118,7 @@ function Editor({
     if (text.includes('\n')) {
       // User pressed Enter inside the title — move focus into the editor.
       setTitle(text.replace(/\n/g, ''));
-      editor.focus();
+      setTimeout(() => editor.focus(), 0);
       return;
     }
     setTitle(text);
@@ -154,8 +154,7 @@ function Editor({
           onChangeText={onTitleChange}
           multiline
           scrollEnabled={false}
-          blurOnSubmit
-          returnKeyType="next"
+          blurOnSubmit={false}
         />
         <View style={styles.body}>
           <RichText editor={editor} />
