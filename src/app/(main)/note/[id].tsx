@@ -148,7 +148,19 @@ function Editor({
             if (text.includes('\n')) {
               setTitle(text.replace(/\n/g, ''));
               titleRef.current?.blur();
-              setTimeout(() => editor.focus(), 30);
+              setTimeout(() => {
+                // Insert an empty paragraph at the top of the body and put cursor there,
+                // matching Notion's behavior when Enter is pressed in the title.
+                editor.injectJS(`
+                  try {
+                    if (typeof editor !== 'undefined' && editor.commands) {
+                      editor.commands.insertContentAt(0, '<p></p>');
+                      editor.commands.focus(1);
+                    }
+                  } catch (e) {}
+                `);
+                editor.focus();
+              }, 30);
             } else {
               setTitle(text);
             }
