@@ -158,5 +158,5 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: palette.bg,
   },
-  body: { flex: 1, backgroundColor: palette.bg },
+  body: { flex: 1, backgroundColor: palette.bg, paddingHorizontal: 24 },
 });
