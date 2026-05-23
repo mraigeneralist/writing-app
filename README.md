@@ -1,56 +1,65 @@
-# Welcome to your Expo app 👋
+# Writeflow
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A Notion-style mobile writing app for Android with three core features:
 
-## Get started
+1. **Idea capture** — quick frictionless notes.
+2. **Danger Mode** — timed writing session. Stop typing for 3 seconds and your text fades to nothing. Inspired by *The Most Dangerous Writing App*.
+3. **Notion-style editor** for longer drafts, with cloud sync.
 
-1. Install dependencies
+Built with **React Native + Expo**, **TypeScript**, **Expo Router**, **Tiptap** (`@10play/tentap-editor`), and **Supabase** (Postgres + Auth).
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## Getting started
 
-   ```bash
-   npx expo start
-   ```
+### Prerequisites
+- Node.js 20+ (`node --version`)
+- Git (`git --version`)
+- Free accounts: [Supabase](https://supabase.com), [Expo](https://expo.dev)
+- **Expo Go** app on your Android phone (Play Store)
 
-In the output, you'll find options to open the app in a
+### Setup
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+git clone https://github.com/mraigeneralist/writing-app.git
+cd writing-app
+npm install
+copy .env.example .env
+# then fill in Supabase URL + anon key in .env
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Set up Supabase
 
-### Other setup steps
+1. Create a new project at https://supabase.com (free tier).
+2. Open **SQL Editor** -> paste contents of [`supabase/schema.sql`](supabase/schema.sql) -> Run.
+3. **Project Settings -> API** -> copy `Project URL` and `anon public` key into your `.env`.
+4. **Authentication -> Providers** -> make sure **Email** is enabled.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Run on your phone
 
-## Learn more
+```powershell
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Scan the QR code with Expo Go.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## Project structure
 
-Join our community of developers creating universal apps.
+```
+src/
+  app/                 # Expo Router screens (file-based routing)
+  components/          # Reusable components
+  constants/theme.ts   # Colors, spacing, fonts
+  hooks/
+  lib/supabase.ts      # Supabase client
+supabase/
+  schema.sql           # Database schema (run once in Supabase SQL editor)
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Build status
+
+Currently in **Phase 1** - project scaffolded, dependencies installed. Next: auth screens, then home screen, then the editor, then Danger Mode.
+
+See the implementation plan for the full roadmap.
