@@ -230,18 +230,18 @@ function decodeBase64Polyfill(b64: string): string {
 
 const styles = StyleSheet.create({
   bar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: space.md,
-    paddingVertical: space.sm,
     backgroundColor: palette.bg,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: palette.border,
   },
   btn: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
