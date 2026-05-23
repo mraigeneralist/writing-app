@@ -37,3 +37,19 @@ create policy "own notes" on notes for all
 -- Helpful indexes
 create index if not exists ideas_user_created_idx on ideas (user_id, created_at desc);
 create index if not exists notes_user_updated_idx on notes (user_id, updated_at desc);
+
+-- Storage bucket for note images (public read, authenticated write)
+insert into storage.buckets (id, name, public)
+values ('note-images', 'note-images', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Auth users can upload note images" on storage.objects;
+drop policy if exists "Anyone can read note images" on storage.objects;
+
+create policy "Auth users can upload note images" on storage.objects
+  for insert with check (
+    bucket_id = 'note-images' and auth.role() = 'authenticated'
+  );
+
+create policy "Anyone can read note images" on storage.objects
+  for select using (bucket_id = 'note-images');

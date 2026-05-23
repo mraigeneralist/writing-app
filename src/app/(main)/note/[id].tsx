@@ -11,8 +11,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { RichText, Toolbar, useEditorBridge } from '@10play/tentap-editor';
+import { RichText, useEditorBridge } from '@10play/tentap-editor';
 
+import { NotionToolbar } from '@/components/NotionToolbar';
 import { supabase } from '@/lib/supabase';
 import { palette } from '@/theme';
 
@@ -138,7 +139,7 @@ function Editor({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <Toolbar editor={editor} />
+          <NotionToolbar editor={editor} />
         </KeyboardAvoidingView>
       </View>
     </>
