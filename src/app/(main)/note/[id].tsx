@@ -117,16 +117,6 @@ function Editor({
     initialContent: buildInitial(initial.title, initial.html),
   });
 
-  // Position cursor inside the title and pop the keyboard, once after mount.
-  // autofocus is off so the cursor never briefly appears anywhere else.
-  useEffect(() => {
-    const id = setTimeout(() => {
-      editor.setSelection(1, 1);
-      editor.focus();
-    }, 250);
-    return () => clearTimeout(id);
-  }, [editor]);
-
   useEffect(() => {
     const attempts = [0, 50, 100, 200, 400, 800, 1500];
     const timeouts = attempts.map((ms) =>
