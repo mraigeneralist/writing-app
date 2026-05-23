@@ -117,10 +117,13 @@ function Editor({
     initialContent: buildInitial(initial.title, initial.html),
   });
 
-  // Defensive focus call — autofocus alone is sometimes lost during the screen
-  // transition on Android, so we re-focus after the WebView has mounted.
+  // Place the cursor inside the title (first h1, position 1) and pop the keyboard
+  // once the WebView has finished mounting.
   useEffect(() => {
-    const id = setTimeout(() => editor.focus(), 400);
+    const id = setTimeout(() => {
+      editor.setSelection(1, 1);
+      editor.focus();
+    }, 400);
     return () => clearTimeout(id);
   }, [editor]);
 
