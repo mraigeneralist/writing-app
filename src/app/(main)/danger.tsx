@@ -31,6 +31,7 @@ const DURATIONS = [
 ];
 
 type Phase = 'config' | 'writing' | 'done' | 'wiped';
+type DoneInfo = { noteId: string | null };
 
 export default function DangerScreen() {
   const router = useRouter();
@@ -38,8 +39,10 @@ export default function DangerScreen() {
   const [minutes, setMinutes] = useState(5);
   const [text, setText] = useState('');
   const [remaining, setRemaining] = useState(minutes * 60);
+  const [doneInfo, setDoneInfo] = useState<DoneInfo>({ noteId: null });
 
   const lastKeyRef = useRef<number>(Date.now());
+  const textRef = useRef('');
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const keyboard = useAnimatedKeyboard();
@@ -53,7 +56,9 @@ export default function DangerScreen() {
 
   function start() {
     setText('');
+    textRef.current = '';
     setRemaining(minutes * 60);
+    setDoneInfo({ noteId: null });
     lastKeyRef.current = Date.now();
     textOpacity.value = 1;
     setPhase('writing');
@@ -87,6 +92,7 @@ export default function DangerScreen() {
         textOpacity.value = 1;
       } else if (idle >= IDLE_WIPE_MS) {
         textOpacity.value = 0;
+        textRef.current = '';
         setText('');
         setPhase('wiped');
       } else {
@@ -100,21 +106,24 @@ export default function DangerScreen() {
   function onChangeText(v: string) {
     lastKeyRef.current = Date.now();
     textOpacity.value = 1;
+    textRef.current = v;
     setText(v);
   }
 
   async function finish() {
-    if (!text.trim()) {
+    const currentText = textRef.current;
+    if (!currentText.trim()) {
       setPhase('wiped');
       return;
     }
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) {
+      setDoneInfo({ noteId: null });
       setPhase('done');
       return;
     }
-    const html = `<p>${text
+    const html = `<p>${currentText
       .split('\n')
       .map((l) => l.replace(/</g, '&lt;'))
       .join('</p><p>')}</p>`;
@@ -127,10 +136,8 @@ export default function DangerScreen() {
       })
       .select('id')
       .single();
+    setDoneInfo({ noteId: data?.id ?? null });
     setPhase('done');
-    if (data?.id) {
-      setTimeout(() => router.replace(`/(main)/note/${data.id}`), 1200);
-    }
   }
 
   function abort() {
@@ -226,16 +233,38 @@ export default function DangerScreen() {
   }
 
   if (phase === 'done') {
+    const canEdit = !!doneInfo.noteId;
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={styles.topBar}>
+            <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+              <Feather name="arrow-left" size={22} color={palette.text} />
+            </Pressable>
+          </View>
+
           <View style={styles.center}>
             <View style={styles.doneIcon}>
               <Feather name="check" size={32} color="#fff" />
             </View>
-            <Text style={styles.doneTitle}>You did it.</Text>
-            <Text style={styles.wipedSub}>Opening your draft…</Text>
+            <Text style={styles.doneTitle}>You cleared Danger Mode.</Text>
+            <Text style={styles.wipedSub}>
+              Your draft is saved. Time to shape it into something real.
+            </Text>
+
+            {canEdit && (
+              <Pressable
+                style={[styles.primaryButton, { marginTop: 32 }]}
+                onPress={() => router.replace(`/(main)/note/${doneInfo.noteId}`)}
+              >
+                <Feather name="edit-3" size={18} color="#fff" />
+                <Text style={styles.primaryButtonText}>Edit your draft</Text>
+              </Pressable>
+            )}
+            <Pressable style={{ marginTop: 14 }} onPress={() => router.replace('/(main)')}>
+              <Text style={styles.linkText}>Back home</Text>
+            </Pressable>
           </View>
         </View>
       </>
