@@ -14,6 +14,7 @@ export default function MainLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="articles" options={{ headerShown: false }} />
       <Stack.Screen
         name="idea-capture"
         options={{ presentation: 'modal', title: 'New idea' }}

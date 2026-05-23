@@ -1,11 +1,7 @@
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
-  ActivityIndicator,
-  FlatList,
   Pressable,
-  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -13,69 +9,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { palette, space } from '@/theme';
-
-type Note = {
-  id: string;
-  title: string | null;
-  content: { html?: string } | null;
-  updated_at: string;
-};
-
-type Idea = { id: string; content: string; created_at: string };
-
-function previewFromContent(c: Note['content']) {
-  if (!c || !c.html) return '';
-  return c.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
-}
-
-function formatDate(iso?: string) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  const day = 24 * 60 * 60 * 1000;
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  }
-  if (diff < 7 * day) return d.toLocaleDateString([], { weekday: 'short' });
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
-
-function todayLabel() {
-  return new Date().toLocaleDateString([], {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
+import { palette } from '@/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  async function load() {
-    const [n, i] = await Promise.all([
-      supabase.from('notes').select('id,title,content,updated_at').order('updated_at', { ascending: false }),
-      supabase.from('ideas').select('id,content,created_at').order('created_at', { ascending: false }),
-    ]);
-    if (n.data) setNotes(n.data as Note[]);
-    if (i.data) setIdeas(i.data as Idea[]);
-    setLoading(false);
-  }
-
-  useFocusEffect(useCallback(() => { load(); }, []));
-
-  async function onRefresh() {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }
-
-  async function newNote() {
+  async function newNormalNote() {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
     if (!userId) return;
@@ -92,246 +31,149 @@ export default function HomeScreen() {
     await supabase.auth.signOut();
   }
 
-  const header = (
-    <View>
-      <View style={styles.headerTop}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.date}>{todayLabel()}</Text>
-          <Text style={styles.heading}>Writeflow</Text>
-        </View>
-        <Pressable onPress={signOut} hitSlop={12} style={styles.iconBtn}>
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.brand}>Writeflow</Text>
+        <Pressable onPress={signOut} hitSlop={12} style={styles.signOut}>
           <Feather name="log-out" size={18} color={palette.textMuted} />
         </Pressable>
       </View>
 
-      <View style={styles.actions}>
-        <ActionCard
-          icon="edit-3"
-          label="New note"
-          onPress={newNote}
-        />
-        <ActionCard
+      <View style={styles.cards}>
+        <ModeCard
+          variant="danger"
           icon="zap"
-          label="Idea"
-          onPress={() => router.push('/(main)/idea-capture')}
-        />
-        <ActionCard
-          icon="clock"
-          label="Danger"
-          accent
+          title="Danger Mode"
+          subtitle="Write without stopping. Stop typing and it's gone."
           onPress={() => router.push('/(main)/danger')}
+        />
+        <ModeCard
+          variant="default"
+          icon="edit-3"
+          title="Normal Mode"
+          subtitle="Draft your article at your own pace."
+          onPress={newNormalNote}
+        />
+        <ModeCard
+          variant="default"
+          icon="book-open"
+          title="Your Articles"
+          subtitle="Everything you've written."
+          onPress={() => router.push('/(main)/articles')}
         />
       </View>
 
-      {ideas.length > 0 && (
-        <View style={styles.ideasBlock}>
-          <Text style={styles.section}>Recent ideas</Text>
-          {ideas.slice(0, 4).map((i) => (
-            <View key={i.id} style={styles.ideaRow}>
-              <View style={styles.bullet} />
-              <Text style={styles.ideaText} numberOfLines={2}>
-                {i.content}
-              </Text>
-            </View>
-          ))}
-          {ideas.length > 4 && (
-            <Text style={styles.moreLabel}>+ {ideas.length - 4} more</Text>
-          )}
-        </View>
-      )}
-
-      <Text style={styles.section}>Notes</Text>
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.textMuted} />
-        </View>
-      ) : (
-        <FlatList
-          data={notes}
-          keyExtractor={(n) => n.id}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.textMuted} />}
-          ListHeaderComponent={header}
-          ItemSeparatorComponent={() => <View style={styles.divider} />}
-          renderItem={({ item }) => (
-            <Pressable
-              style={({ pressed }) => [styles.noteRow, pressed && styles.pressed]}
-              onPress={() => router.push(`/(main)/note/${item.id}`)}
-            >
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.noteTitle} numberOfLines={1}>
-                  {item.title?.trim() || 'Untitled'}
-                </Text>
-                {previewFromContent(item.content) ? (
-                  <Text style={styles.notePreview} numberOfLines={1}>
-                    {previewFromContent(item.content)}
-                  </Text>
-                ) : null}
-              </View>
-              <Text style={styles.noteDate}>{formatDate(item.updated_at)}</Text>
-            </Pressable>
-          )}
-          ListEmptyComponent={
-            <Pressable onPress={newNote} style={styles.emptyCard}>
-              <Feather name="edit-3" size={22} color={palette.textMuted} />
-              <Text style={styles.emptyText}>Start your first note</Text>
-            </Pressable>
-          }
-        />
-      )}
-
       <Pressable
-        onPress={newNote}
+        onPress={() => router.push('/(main)/idea-capture')}
         style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
       >
-        <Feather name="plus" size={26} color="#fff" />
+        <Feather name="message-circle" size={26} color="#fff" />
       </Pressable>
     </SafeAreaView>
   );
 }
 
-function ActionCard({
+function ModeCard({
+  variant,
   icon,
-  label,
+  title,
+  subtitle,
   onPress,
-  accent,
 }: {
+  variant: 'danger' | 'default';
   icon: keyof typeof Feather.glyphMap;
-  label: string;
+  title: string;
+  subtitle: string;
   onPress: () => void;
-  accent?: boolean;
 }) {
+  const isDanger = variant === 'danger';
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.actionCard,
-        accent && styles.actionCardAccent,
-        pressed && { opacity: 0.6 },
+        styles.card,
+        isDanger ? styles.cardDanger : styles.cardDefault,
+        pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
       ]}
     >
+      <View style={[styles.cardIcon, isDanger ? styles.cardIconDanger : styles.cardIconDefault]}>
+        <Feather name={icon} size={22} color={isDanger ? '#fff' : palette.text} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.cardTitle, isDanger && { color: palette.danger }]}>{title}</Text>
+        <Text style={styles.cardSubtitle}>{subtitle}</Text>
+      </View>
       <Feather
-        name={icon}
+        name="chevron-right"
         size={20}
-        color={accent ? '#fff' : palette.text}
+        color={isDanger ? palette.danger : palette.textMuted}
       />
-      <Text style={[styles.actionLabel, accent && { color: '#fff' }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: palette.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { paddingHorizontal: space.lg, paddingBottom: 120 },
-
-  headerTop: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingTop: space.sm,
-    paddingBottom: space.lg,
-  },
-  date: { fontSize: 13, color: palette.textMuted, fontWeight: '500', marginBottom: 2 },
-  heading: { fontSize: 34, fontWeight: '700', color: palette.text, letterSpacing: -0.6 },
-  iconBtn: { padding: 6 },
-
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: space.xl,
-  },
-  actionCard: {
-    flex: 1,
-    aspectRatio: 1.15,
-    borderRadius: 14,
-    backgroundColor: '#F7F6F3',
-    padding: 14,
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  actionCardAccent: {
-    backgroundColor: palette.text,
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: palette.text,
-  },
+  brand: { fontSize: 22, fontWeight: '700', color: palette.text, letterSpacing: -0.3 },
+  signOut: { padding: 6 },
 
-  ideasBlock: { marginBottom: space.xl },
-  section: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: palette.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: space.sm,
-    paddingHorizontal: 2,
+  cards: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 14,
   },
-  ideaRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 7,
-    paddingHorizontal: 4,
-  },
-  bullet: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: palette.text,
-    marginTop: 11,
-    marginRight: 12,
-  },
-  ideaText: { flex: 1, fontSize: 15, lineHeight: 22, color: palette.text },
-  moreLabel: {
-    fontSize: 13,
-    color: palette.textMuted,
-    fontWeight: '500',
-    paddingHorizontal: 4,
-    marginTop: 6,
-  },
-
-  noteRow: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    gap: 12,
-  },
-  pressed: { backgroundColor: '#F4F4F2' },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: palette.border },
-  noteTitle: { fontSize: 16, fontWeight: '600', color: palette.text },
-  notePreview: { fontSize: 13, color: palette.textMuted, marginTop: 3 },
-  noteDate: { fontSize: 12, color: palette.textMuted, marginLeft: 8 },
-
-  emptyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    gap: 14,
     padding: 18,
-    borderRadius: 12,
-    backgroundColor: '#F7F6F3',
+    borderRadius: 18,
+    borderWidth: 1.5,
   },
-  emptyText: { fontSize: 15, color: palette.textMuted, fontWeight: '500' },
+  cardDefault: {
+    backgroundColor: '#FFFFFF',
+    borderColor: palette.border,
+  },
+  cardDanger: {
+    backgroundColor: '#FFF5F4',
+    borderColor: palette.danger,
+  },
+  cardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardIconDefault: { backgroundColor: '#F4F4F2' },
+  cardIconDanger: { backgroundColor: palette.danger },
+  cardTitle: { fontSize: 17, fontWeight: '700', color: palette.text, letterSpacing: -0.2 },
+  cardSubtitle: { fontSize: 13, color: palette.textMuted, marginTop: 2, lineHeight: 18 },
 
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 22,
+    bottom: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: palette.text,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
     elevation: 8,
   },
 });
