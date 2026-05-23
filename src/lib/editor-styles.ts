@@ -175,4 +175,17 @@ export const notionEditorCss = `
   html, body {
     overscroll-behavior: contain;
   }
+
+  /* Hide scrollbars — Notion doesn't show them */
+  html, body, .ProseMirror {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .ProseMirror::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 `;

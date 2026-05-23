@@ -88,7 +88,6 @@ function Editor({
     initialContent: initial.html || '<p></p>',
   });
 
-  // Inject Notion-style CSS into the editor WebView.
   useEffect(() => {
     const attempts = [200, 500, 1000, 2000];
     const timeouts = attempts.map((ms) =>
@@ -97,7 +96,6 @@ function Editor({
     return () => timeouts.forEach(clearTimeout);
   }, [editor]);
 
-  // Autosave every 2s
   useEffect(() => {
     const interval = setInterval(async () => {
       const html = await editor.getHTML();
@@ -115,6 +113,16 @@ function Editor({
     }, 2000);
     return () => clearInterval(interval);
   }, [title, savedTitle, savedHtml, noteId, editor]);
+
+  function onTitleChange(text: string) {
+    if (text.includes('\n')) {
+      // User pressed Enter inside the title — move focus into the editor.
+      setTitle(text.replace(/\n/g, ''));
+      editor.focus();
+      return;
+    }
+    setTitle(text);
+  }
 
   return (
     <>
@@ -134,25 +142,26 @@ function Editor({
           ),
         }}
       />
-      <View style={styles.page}>
+      <KeyboardAvoidingView
+        style={styles.page}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <TextInput
           style={styles.title}
           placeholder="Untitled"
           placeholderTextColor="#C5C4C0"
           value={title}
-          onChangeText={setTitle}
+          onChangeText={onTitleChange}
           multiline
           scrollEnabled={false}
+          blurOnSubmit
+          returnKeyType="next"
         />
         <View style={styles.body}>
           <RichText editor={editor} />
         </View>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <NotionToolbar editor={editor} />
-        </KeyboardAvoidingView>
-      </View>
+        <NotionToolbar editor={editor} />
+      </KeyboardAvoidingView>
     </>
   );
 }
