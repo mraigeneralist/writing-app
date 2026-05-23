@@ -6,13 +6,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { palette } from '@/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   async function newNormalNote() {
     const { data: userData } = await supabase.auth.getUser();
@@ -66,7 +67,11 @@ export default function HomeScreen() {
 
       <Pressable
         onPress={() => router.push('/(main)/idea-capture')}
-        style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [
+          styles.fab,
+          { bottom: Math.max(insets.bottom, 16) + 12 },
+          pressed && { opacity: 0.85 },
+        ]}
       >
         <Feather name="message-circle" size={26} color="#fff" />
       </Pressable>

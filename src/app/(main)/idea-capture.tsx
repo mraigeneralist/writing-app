@@ -71,6 +71,7 @@ export default function IdeaCaptureScreen() {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<Row>>(null);
+  const inputRef = useRef<TextInput>(null);
   const keyboard = useAnimatedKeyboard();
 
   const pageStyle = useAnimatedStyle(() => ({
@@ -94,6 +95,12 @@ export default function IdeaCaptureScreen() {
     const id = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
     return () => clearTimeout(id);
   }, [ideas]);
+
+  // Open the keyboard automatically when the screen mounts.
+  useEffect(() => {
+    const id = setTimeout(() => inputRef.current?.focus(), 300);
+    return () => clearTimeout(id);
+  }, []);
 
   async function send() {
     const trimmed = text.trim();
@@ -165,12 +172,14 @@ export default function IdeaCaptureScreen() {
 
         <View style={styles.composer}>
           <TextInput
+            ref={inputRef}
             style={styles.input}
             value={text}
             onChangeText={setText}
             placeholder="Capture an idea…"
             placeholderTextColor={palette.textMuted}
             multiline
+            autoFocus
           />
           <Pressable
             onPress={send}
