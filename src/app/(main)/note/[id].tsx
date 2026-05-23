@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -79,6 +81,18 @@ function Editor({
   const [savedTitle, setSavedTitle] = useState(initial.title);
   const [savedHtml, setSavedHtml] = useState(initial.html);
   const [saving, setSaving] = useState(false);
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const editor = useEditorBridge({
     autofocus: false,
@@ -130,7 +144,7 @@ function Editor({
           ),
         }}
       />
-      <View style={styles.page}>
+      <View style={[styles.page, { paddingBottom: kbHeight }]}>
         <TextInput
           style={styles.title}
           placeholder="Untitled"
