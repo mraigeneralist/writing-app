@@ -112,14 +112,18 @@ function Editor({
   }));
 
   const editor = useEditorBridge({
-    autofocus: 'start',
+    autofocus: false,
     avoidIosKeyboard: true,
     initialContent: buildInitial(initial.title, initial.html),
   });
 
-  // Defensive focus in case Android's screen transition swallows autofocus.
+  // Position cursor inside the title and pop the keyboard, once after mount.
+  // autofocus is off so the cursor never briefly appears anywhere else.
   useEffect(() => {
-    const id = setTimeout(() => editor.focus(), 400);
+    const id = setTimeout(() => {
+      editor.setSelection(1, 1);
+      editor.focus();
+    }, 250);
     return () => clearTimeout(id);
   }, [editor]);
 
