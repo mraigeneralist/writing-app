@@ -112,18 +112,14 @@ function Editor({
   }));
 
   const editor = useEditorBridge({
-    autofocus: true,
+    autofocus: 'start',
     avoidIosKeyboard: true,
     initialContent: buildInitial(initial.title, initial.html),
   });
 
-  // Place the cursor inside the title (first h1, position 1) and pop the keyboard
-  // once the WebView has finished mounting.
+  // Defensive focus in case Android's screen transition swallows autofocus.
   useEffect(() => {
-    const id = setTimeout(() => {
-      editor.setSelection(1, 1);
-      editor.focus();
-    }, 400);
+    const id = setTimeout(() => editor.focus(), 400);
     return () => clearTimeout(id);
   }, [editor]);
 
