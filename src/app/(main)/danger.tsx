@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -13,10 +14,10 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
-import { palette, radius, space, type as t } from '@/theme';
+import { palette, radius, space } from '@/theme';
 
 const IDLE_GRACE_MS = 500;    // text stays full opacity for this long after last keystroke
 const IDLE_WIPE_MS = 3000;    // by this point text is fully gone
@@ -141,71 +142,103 @@ export default function DangerScreen() {
 
   if (phase === 'config') {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.configBody}>
-          <Text style={t.h1}>Danger Mode</Text>
-          <Text style={[t.body, { color: palette.textMuted, marginTop: space.sm }]}>
-            Pick a duration and start writing. If you stop typing for 3 seconds, your text fades
-            away — and it's gone.
-          </Text>
-
-          <Text style={styles.label}>Duration</Text>
-          <View style={styles.durationGrid}>
-            {DURATIONS.map((d) => (
-              <Pressable
-                key={d.minutes}
-                style={[styles.duration, minutes === d.minutes && styles.durationActive]}
-                onPress={() => setMinutes(d.minutes)}
-              >
-                <Text
-                  style={[
-                    styles.durationText,
-                    minutes === d.minutes && { color: '#fff' },
-                  ]}
-                >
-                  {d.label}
-                </Text>
-              </Pressable>
-            ))}
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={styles.topBar}>
+            <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+              <Feather name="arrow-left" size={22} color={palette.text} />
+            </Pressable>
           </View>
 
-          <Pressable style={styles.startButton} onPress={start}>
-            <Text style={styles.startText}>Start writing</Text>
-          </Pressable>
+          <View style={styles.configBody}>
+            <View style={styles.dangerBadge}>
+              <Feather name="zap" size={14} color="#fff" />
+              <Text style={styles.dangerBadgeText}>Danger Mode</Text>
+            </View>
+
+            <Text style={styles.configHeading}>Write without stopping.</Text>
+            <Text style={styles.configSub}>
+              Pick a duration. If you stop typing for more than 3 seconds, your words start to
+              fade — and then they're gone.
+            </Text>
+
+            <Text style={styles.label}>Duration</Text>
+            <View style={styles.durationGrid}>
+              {DURATIONS.map((d) => (
+                <Pressable
+                  key={d.minutes}
+                  style={[styles.duration, minutes === d.minutes && styles.durationActive]}
+                  onPress={() => setMinutes(d.minutes)}
+                >
+                  <Text
+                    style={[
+                      styles.durationText,
+                      minutes === d.minutes && { color: '#fff' },
+                    ]}
+                  >
+                    {d.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable style={styles.primaryButton} onPress={start}>
+              <Text style={styles.primaryButtonText}>Start writing</Text>
+              <Feather name="arrow-right" size={18} color="#fff" />
+            </Pressable>
+          </View>
         </View>
-      </SafeAreaView>
+      </>
     );
   }
 
   if (phase === 'wiped') {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <Text style={[t.h1, { color: palette.danger }]}>Wiped.</Text>
-          <Text style={[t.body, { color: palette.textMuted, marginTop: space.sm }]}>
-            You stopped writing. The words are gone.
-          </Text>
-          <Pressable style={[styles.startButton, { marginTop: space.xl }]} onPress={start}>
-            <Text style={styles.startText}>Try again</Text>
-          </Pressable>
-          <Pressable style={{ marginTop: space.md }} onPress={() => router.back()}>
-            <Text style={{ color: palette.textMuted }}>Back home</Text>
-          </Pressable>
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={styles.topBar}>
+            <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+              <Feather name="arrow-left" size={22} color={palette.text} />
+            </Pressable>
+          </View>
+
+          <View style={styles.center}>
+            <View style={styles.wipedIcon}>
+              <Feather name="wind" size={28} color={palette.danger} />
+            </View>
+            <Text style={styles.wipedTitle}>Your words drifted away.</Text>
+            <Text style={styles.wipedSub}>
+              You hesitated for too long. Nothing was saved.
+            </Text>
+
+            <Pressable style={[styles.primaryButton, { marginTop: 32 }]} onPress={start}>
+              <Text style={styles.primaryButtonText}>Try again</Text>
+            </Pressable>
+            <Pressable style={{ marginTop: 14 }} onPress={() => router.back()}>
+              <Text style={styles.linkText}>Back home</Text>
+            </Pressable>
+          </View>
         </View>
-      </SafeAreaView>
+      </>
     );
   }
 
   if (phase === 'done') {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <Text style={[t.h1, { color: palette.success }]}>You survived.</Text>
-          <Text style={[t.body, { color: palette.textMuted, marginTop: space.sm }]}>
-            Your draft is saved. Opening it…
-          </Text>
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <View style={styles.center}>
+            <View style={styles.doneIcon}>
+              <Feather name="check" size={32} color="#fff" />
+            </View>
+            <Text style={styles.doneTitle}>You did it.</Text>
+            <Text style={styles.wipedSub}>Opening your draft…</Text>
+          </View>
         </View>
-      </SafeAreaView>
+      </>
     );
   }
 
@@ -216,15 +249,17 @@ export default function DangerScreen() {
   const ss = (remaining % 60).toString().padStart(2, '0');
 
   return (
-    <Animated.View style={[styles.safe, pageStyle, { paddingTop: insets.top }]}>
-      <View style={styles.writingHeader}>
-        <Text style={styles.timer}>
-          {mm}:{ss}
-        </Text>
-        <Pressable onPress={abort} hitSlop={12}>
-          <Text style={{ color: palette.textMuted, fontSize: 14 }}>Quit</Text>
-        </Pressable>
-      </View>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Animated.View style={[styles.safe, pageStyle, { paddingTop: insets.top }]}>
+        <View style={styles.writingHeader}>
+          <Text style={styles.timer}>
+            {mm}:{ss}
+          </Text>
+          <Pressable onPress={abort} hitSlop={12}>
+            <Text style={styles.quitText}>Quit</Text>
+          </Pressable>
+        </View>
 
       <Animated.View style={[styles.editorWrap, editorOpacityStyle]}>
         <TextInput
@@ -239,19 +274,56 @@ export default function DangerScreen() {
           autoCorrect
           autoCapitalize="sentences"
         />
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.surface },
-  configBody: { flex: 1, padding: space.lg, justifyContent: 'center' },
+  safe: { flex: 1, backgroundColor: palette.bg },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  backBtn: { padding: 4 },
+
+  configBody: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
+
+  dangerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: palette.danger,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 5,
+    marginBottom: 18,
+  },
+  dangerBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+
+  configHeading: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: palette.text,
+    letterSpacing: -0.5,
+    lineHeight: 36,
+  },
+  configSub: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: palette.textMuted,
+    marginTop: 10,
+  },
+
   label: {
-    marginTop: space.xl,
-    marginBottom: space.sm,
-    fontSize: 13,
-    fontWeight: '600',
+    marginTop: 36,
+    marginBottom: 12,
+    fontSize: 12,
+    fontWeight: '700',
     color: palette.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -259,47 +331,92 @@ const styles = StyleSheet.create({
   durationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: space.sm,
+    gap: 8,
   },
   duration: {
-    backgroundColor: palette.surface,
+    backgroundColor: '#F7F6F3',
     borderRadius: radius.md,
-    paddingVertical: space.md,
-    paddingHorizontal: space.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
   },
-  durationActive: { backgroundColor: palette.text, borderColor: palette.text },
-  durationText: { fontSize: 16, color: palette.text, fontWeight: '600' },
-  startButton: {
-    backgroundColor: palette.accent,
-    borderRadius: radius.md,
-    paddingVertical: space.md,
+  durationActive: { backgroundColor: palette.text },
+  durationText: { fontSize: 15, color: palette.text, fontWeight: '600' },
+
+  primaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: space.xl,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: palette.text,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginTop: 36,
   },
-  startText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  linkText: { color: palette.textMuted, fontSize: 14, fontWeight: '500' },
+
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+
+  wipedIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FDECE9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 22,
+  },
+  wipedTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: palette.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  wipedSub: {
+    fontSize: 15,
+    color: palette.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 22,
+  },
+
+  doneIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: palette.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 22,
+  },
+  doneTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: palette.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+
   writingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
-  timer: { fontSize: 28, fontWeight: '700', color: palette.danger },
-  editorWrap: {
-    flex: 1,
-    backgroundColor: palette.surface,
-    overflow: 'hidden',
-  },
+  timer: { fontSize: 28, fontWeight: '700', color: palette.danger, letterSpacing: -0.5 },
+  quitText: { color: palette.textMuted, fontSize: 14, fontWeight: '500' },
+
+  editorWrap: { flex: 1, backgroundColor: palette.bg, overflow: 'hidden' },
   editor: {
     flex: 1,
     fontSize: 19,
     lineHeight: 28,
     color: palette.text,
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
-    paddingBottom: space.md,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
 });
