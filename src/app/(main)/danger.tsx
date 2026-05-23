@@ -1,0 +1,308 @@
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { supabase } from '@/lib/supabase';
+import { palette, radius, space, type as t } from '@/theme';
+
+const IDLE_LIMIT_MS = 3000;
+const FADE_DURATION_MS = 1000;
+const DURATIONS = [
+  { label: '3 min', minutes: 3 },
+  { label: '5 min', minutes: 5 },
+  { label: '10 min', minutes: 10 },
+  { label: '15 min', minutes: 15 },
+];
+
+type Phase = 'config' | 'writing' | 'done' | 'wiped';
+
+export default function DangerScreen() {
+  const router = useRouter();
+  const [phase, setPhase] = useState<Phase>('config');
+  const [minutes, setMinutes] = useState(5);
+  const [text, setText] = useState('');
+  const [remaining, setRemaining] = useState(minutes * 60);
+
+  const lastKeyRef = useRef<number>(Date.now());
+  const opacity = useRef(new Animated.Value(1)).current;
+  const fadeAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const inputRef = useRef<TextInput>(null);
+
+  function start() {
+    setText('');
+    setRemaining(minutes * 60);
+    lastKeyRef.current = Date.now();
+    opacity.setValue(1);
+    setPhase('writing');
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
+  // Session countdown
+  useEffect(() => {
+    if (phase !== 'writing') return;
+    const id = setInterval(() => {
+      setRemaining((r) => {
+        if (r <= 1) {
+          clearInterval(id);
+          finish();
+          return 0;
+        }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // Idle watchdog: every 200ms, check if user has been idle > 3s. If so, fade out.
+  useEffect(() => {
+    if (phase !== 'writing') return;
+    const id = setInterval(() => {
+      const idle = Date.now() - lastKeyRef.current;
+      if (idle > IDLE_LIMIT_MS && !fadeAnimRef.current) {
+        fadeAnimRef.current = Animated.timing(opacity, {
+          toValue: 0,
+          duration: FADE_DURATION_MS,
+          useNativeDriver: true,
+        });
+        fadeAnimRef.current.start(({ finished }) => {
+          if (finished) {
+            setText('');
+            setPhase('wiped');
+          }
+          fadeAnimRef.current = null;
+        });
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [phase, opacity]);
+
+  function onChangeText(v: string) {
+    lastKeyRef.current = Date.now();
+    if (fadeAnimRef.current) {
+      fadeAnimRef.current.stop();
+      fadeAnimRef.current = null;
+    }
+    opacity.setValue(1);
+    setText(v);
+  }
+
+  async function finish() {
+    if (!text.trim()) {
+      setPhase('wiped');
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) {
+      setPhase('done');
+      return;
+    }
+    const html = `<p>${text
+      .split('\n')
+      .map((l) => l.replace(/</g, '&lt;'))
+      .join('</p><p>')}</p>`;
+    const { data } = await supabase
+      .from('notes')
+      .insert({
+        title: `Danger session — ${new Date().toLocaleDateString()}`,
+        content: { html },
+        user_id: userId,
+      })
+      .select('id')
+      .single();
+    setPhase('done');
+    if (data?.id) {
+      setTimeout(() => router.replace(`/(main)/note/${data.id}`), 1200);
+    }
+  }
+
+  function abort() {
+    Alert.alert('Quit session?', 'Your text will be lost.', [
+      { text: 'Keep writing', style: 'cancel' },
+      { text: 'Quit', style: 'destructive', onPress: () => router.back() },
+    ]);
+  }
+
+  if (phase === 'config') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.configBody}>
+          <Text style={t.h1}>Danger Mode</Text>
+          <Text style={[t.body, { color: palette.textMuted, marginTop: space.sm }]}>
+            Pick a duration and start writing. If you stop typing for 3 seconds, your text fades
+            away — and it's gone.
+          </Text>
+
+          <Text style={styles.label}>Duration</Text>
+          <View style={styles.durationGrid}>
+            {DURATIONS.map((d) => (
+              <Pressable
+                key={d.minutes}
+                style={[styles.duration, minutes === d.minutes && styles.durationActive]}
+                onPress={() => setMinutes(d.minutes)}
+              >
+                <Text
+                  style={[
+                    styles.durationText,
+                    minutes === d.minutes && { color: '#fff' },
+                  ]}
+                >
+                  {d.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable style={styles.startButton} onPress={start}>
+            <Text style={styles.startText}>Start writing</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (phase === 'wiped') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={[t.h1, { color: palette.danger }]}>Wiped.</Text>
+          <Text style={[t.body, { color: palette.textMuted, marginTop: space.sm }]}>
+            You stopped writing. The words are gone.
+          </Text>
+          <Pressable style={[styles.startButton, { marginTop: space.xl }]} onPress={start}>
+            <Text style={styles.startText}>Try again</Text>
+          </Pressable>
+          <Pressable style={{ marginTop: space.md }} onPress={() => router.back()}>
+            <Text style={{ color: palette.textMuted }}>Back home</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (phase === 'done') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={[t.h1, { color: palette.success }]}>You survived.</Text>
+          <Text style={[t.body, { color: palette.textMuted, marginTop: space.sm }]}>
+            Your draft is saved. Opening it…
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // writing
+  const mm = Math.floor(remaining / 60)
+    .toString()
+    .padStart(2, '0');
+  const ss = (remaining % 60).toString().padStart(2, '0');
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.writingHeader}>
+          <Text style={styles.timer}>
+            {mm}:{ss}
+          </Text>
+          <Pressable onPress={abort} hitSlop={12}>
+            <Text style={{ color: palette.textMuted, fontSize: 14 }}>Quit</Text>
+          </Pressable>
+        </View>
+
+        <Animated.View style={[styles.editorWrap, { opacity }]}>
+          <TextInput
+            ref={inputRef}
+            style={styles.editor}
+            value={text}
+            onChangeText={onChangeText}
+            multiline
+            placeholder="Start typing. Don't stop."
+            placeholderTextColor={palette.textMuted}
+            textAlignVertical="top"
+            autoCorrect
+            autoCapitalize="sentences"
+          />
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: palette.bg },
+  configBody: { flex: 1, padding: space.lg, justifyContent: 'center' },
+  label: {
+    marginTop: space.xl,
+    marginBottom: space.sm,
+    fontSize: 13,
+    fontWeight: '600',
+    color: palette.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  durationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+  },
+  duration: {
+    backgroundColor: palette.surface,
+    borderRadius: radius.md,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+  },
+  durationActive: { backgroundColor: palette.text, borderColor: palette.text },
+  durationText: { fontSize: 16, color: palette.text, fontWeight: '600' },
+  startButton: {
+    backgroundColor: palette.accent,
+    borderRadius: radius.md,
+    paddingVertical: space.md,
+    alignItems: 'center',
+    marginTop: space.xl,
+  },
+  startText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  writingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+  },
+  timer: { fontSize: 28, fontWeight: '700', color: palette.danger },
+  editorWrap: {
+    flex: 1,
+    marginHorizontal: space.md,
+    marginBottom: space.md,
+    backgroundColor: palette.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: space.md,
+  },
+  editor: {
+    flex: 1,
+    fontSize: 18,
+    lineHeight: 26,
+    color: palette.text,
+  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
+});
