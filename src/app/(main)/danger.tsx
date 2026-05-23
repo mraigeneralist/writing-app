@@ -18,8 +18,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { supabase } from '@/lib/supabase';
 import { palette, radius, space, type as t } from '@/theme';
 
-const IDLE_GRACE_MS = 1500;   // text stays full opacity for this long after last keystroke
-const IDLE_WIPE_MS = 5000;    // by this point text is fully gone
+const IDLE_GRACE_MS = 500;    // text stays full opacity for this long after last keystroke
+const IDLE_WIPE_MS = 3000;    // by this point text is fully gone
 
 const DURATIONS = [
   { label: '1 min', minutes: 1 },
