@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,11 +8,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
-import { palette, radius, space, type as t } from '@/theme';
+import { palette, space } from '@/theme';
 
 export default function IdeaCaptureScreen() {
   const router = useRouter();
@@ -44,70 +43,51 @@ export default function IdeaCaptureScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.body}>
-        <Text style={[t.caption, { marginBottom: space.sm }]}>What's the idea?</Text>
+    <>
+      <Stack.Screen
+        options={{
+          headerStyle: { backgroundColor: palette.surface },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: palette.surface },
+          headerRight: () =>
+            saving ? (
+              <ActivityIndicator size="small" color={palette.textMuted} />
+            ) : (
+              <Pressable onPress={save} hitSlop={8}>
+                <Text style={styles.saveLink}>Save</Text>
+              </Pressable>
+            ),
+        }}
+      />
+      <KeyboardAvoidingView
+        style={styles.page}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <TextInput
           ref={inputRef}
           style={styles.input}
-          placeholder="Just type it. Don't overthink."
+          placeholder="What's on your mind?"
           placeholderTextColor={palette.textMuted}
           multiline
           value={content}
           onChangeText={setContent}
           textAlignVertical="top"
         />
-      </View>
-
-      <View style={styles.footer}>
-        <Pressable style={styles.cancel} onPress={() => router.back()}>
-          <Text style={{ color: palette.textMuted, fontSize: 16 }}>Cancel</Text>
-        </Pressable>
-        <Pressable style={styles.save} onPress={save} disabled={saving}>
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveText}>Save</Text>
-          )}
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.bg },
-  body: { flex: 1, padding: space.lg },
+  page: { flex: 1, backgroundColor: palette.surface },
   input: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 19,
+    lineHeight: 28,
     color: palette.text,
-    backgroundColor: palette.surface,
-    borderRadius: radius.md,
-    padding: space.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    minHeight: 200,
-  },
-  footer: {
-    flexDirection: 'row',
     paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    justifyContent: 'flex-end',
-    gap: space.md,
+    paddingTop: space.md,
+    paddingBottom: space.md,
   },
-  cancel: { paddingVertical: space.sm, paddingHorizontal: space.md, justifyContent: 'center' },
-  save: {
-    backgroundColor: palette.text,
-    borderRadius: radius.md,
-    paddingVertical: space.sm,
-    paddingHorizontal: space.lg,
-    minWidth: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  saveLink: { color: palette.accent, fontSize: 16, fontWeight: '600' },
 });

@@ -14,7 +14,7 @@ import {
 import { RichText, Toolbar, useEditorBridge } from '@10play/tentap-editor';
 
 import { supabase } from '@/lib/supabase';
-import { palette, radius, space } from '@/theme';
+import { palette, space } from '@/theme';
 
 export default function NoteEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -108,6 +108,9 @@ function Editor({
     <>
       <Stack.Screen
         options={{
+          headerStyle: { backgroundColor: palette.surface },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: palette.surface },
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {saving && <ActivityIndicator size="small" color={palette.textMuted} />}
@@ -118,45 +121,41 @@ function Editor({
           ),
         }}
       />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <View style={styles.page}>
         <TextInput
           style={styles.title}
           placeholder="Untitled"
           placeholderTextColor={palette.textMuted}
           value={title}
           onChangeText={setTitle}
+          multiline
         />
-        <View style={styles.editorWrap}>
+        <View style={styles.editor}>
           <RichText editor={editor} />
         </View>
-        <Toolbar editor={editor} />
-      </KeyboardAvoidingView>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.toolbarWrap}
+        >
+          <Toolbar editor={editor} />
+        </KeyboardAvoidingView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface },
+  page: { flex: 1, backgroundColor: palette.surface },
   title: {
-    fontSize: 26,
+    fontSize: 32,
     fontWeight: '700',
     color: palette.text,
     paddingHorizontal: space.lg,
-    paddingTop: space.md,
+    paddingTop: space.sm,
     paddingBottom: space.sm,
+    lineHeight: 38,
   },
-  editorWrap: {
-    flex: 1,
-    backgroundColor: palette.surface,
-    marginHorizontal: space.md,
-    marginBottom: space.sm,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    overflow: 'hidden',
-  },
+  editor: { flex: 1, paddingHorizontal: 0 },
+  toolbarWrap: { width: '100%' },
 });

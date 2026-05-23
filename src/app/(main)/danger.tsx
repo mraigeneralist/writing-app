@@ -215,7 +215,7 @@ export default function DangerScreen() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <View style={styles.writingHeader}>
           <Text style={styles.timer}>
@@ -246,7 +246,7 @@ export default function DangerScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.bg },
+  safe: { flex: 1, backgroundColor: palette.surface },
   configBody: { flex: 1, padding: space.lg, justifyContent: 'center' },
   label: {
     marginTop: space.xl,
@@ -290,19 +290,16 @@ const styles = StyleSheet.create({
   timer: { fontSize: 28, fontWeight: '700', color: palette.danger },
   editorWrap: {
     flex: 1,
-    marginHorizontal: space.md,
-    marginBottom: space.md,
     backgroundColor: palette.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: space.md,
   },
   editor: {
     flex: 1,
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 19,
+    lineHeight: 28,
     color: palette.text,
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    paddingBottom: space.md,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg },
 });
