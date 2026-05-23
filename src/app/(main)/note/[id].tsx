@@ -165,6 +165,15 @@ function Editor({
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
             overScrollMode="never"
+            injectedJavaScriptBeforeContentLoaded={`
+              (function() {
+                var style = document.createElement('style');
+                style.id = 'notion-styles-early';
+                style.innerHTML = ${JSON.stringify(notionEditorCss)};
+                (document.head || document.documentElement).appendChild(style);
+              })();
+              true;
+            `}
           />
         </View>
         <NotionToolbar editor={editor} />

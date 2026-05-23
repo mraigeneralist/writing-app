@@ -11,17 +11,12 @@ export const notionEditorCss = `
     margin: 0 0 14px;
     color: #37352F;
   }
+  /* Placeholder: 'Untitled' on the first (title) h1 when it has no text.
+     Covers truly empty h1 and h1 that contains only ProseMirror's trailing <br>. */
   .ProseMirror > h1:first-child.is-empty::before,
-  .ProseMirror > h1:first-child:empty::before {
+  .ProseMirror > h1:first-child:empty::before,
+  .ProseMirror > h1:first-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
     content: 'Untitled';
-    color: #C5C4C0;
-    pointer-events: none;
-    float: left;
-    height: 0;
-  }
-  .ProseMirror > h1:first-child + p.is-empty::before,
-  .ProseMirror > h1:first-child + p:empty::before {
-    content: 'Start writing…';
     color: #C5C4C0;
     pointer-events: none;
     float: left;
@@ -179,18 +174,6 @@ export const notionEditorCss = `
     background: rgba(46, 170, 220, 0.22);
   }
 
-  /* Placeholder for empty paragraphs */
-  .ProseMirror p.is-empty::before {
-    content: 'Type something…';
-    color: #C5C4C0;
-    pointer-events: none;
-    float: left;
-    height: 0;
-  }
-
-  .ProseMirror p.is-empty:not(:first-child)::before {
-    content: '';
-  }
 
   /* Tap highlight off on iOS, smooth touch */
   * {
