@@ -2,16 +2,15 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
+  Animated as RNAnimated,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { palette, radius, space, type as t } from '@/theme';
@@ -35,9 +34,15 @@ export default function DangerScreen() {
   const [remaining, setRemaining] = useState(minutes * 60);
 
   const lastKeyRef = useRef<number>(Date.now());
-  const opacity = useRef(new Animated.Value(1)).current;
-  const fadeAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const opacity = useRef(new RNAnimated.Value(1)).current;
+  const fadeAnimRef = useRef<RNAnimated.CompositeAnimation | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const insets = useSafeAreaInsets();
+  const keyboard = useAnimatedKeyboard();
+
+  const pageStyle = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(keyboard.height.value, insets.bottom),
+  }));
 
   function start() {
     setText('');
@@ -71,7 +76,7 @@ export default function DangerScreen() {
     const id = setInterval(() => {
       const idle = Date.now() - lastKeyRef.current;
       if (idle > IDLE_LIMIT_MS && !fadeAnimRef.current) {
-        fadeAnimRef.current = Animated.timing(opacity, {
+        fadeAnimRef.current = RNAnimated.timing(opacity, {
           toValue: 0,
           duration: FADE_DURATION_MS,
           useNativeDriver: true,
@@ -212,36 +217,31 @@ export default function DangerScreen() {
   const ss = (remaining % 60).toString().padStart(2, '0');
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.writingHeader}>
-          <Text style={styles.timer}>
-            {mm}:{ss}
-          </Text>
-          <Pressable onPress={abort} hitSlop={12}>
-            <Text style={{ color: palette.textMuted, fontSize: 14 }}>Quit</Text>
-          </Pressable>
-        </View>
+    <Animated.View style={[styles.safe, pageStyle, { paddingTop: insets.top }]}>
+      <View style={styles.writingHeader}>
+        <Text style={styles.timer}>
+          {mm}:{ss}
+        </Text>
+        <Pressable onPress={abort} hitSlop={12}>
+          <Text style={{ color: palette.textMuted, fontSize: 14 }}>Quit</Text>
+        </Pressable>
+      </View>
 
-        <Animated.View style={[styles.editorWrap, { opacity }]}>
-          <TextInput
-            ref={inputRef}
-            style={styles.editor}
-            value={text}
-            onChangeText={onChangeText}
-            multiline
-            placeholder="Start typing. Don't stop."
-            placeholderTextColor={palette.textMuted}
-            textAlignVertical="top"
-            autoCorrect
-            autoCapitalize="sentences"
-          />
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <RNAnimated.View style={[styles.editorWrap, { opacity }]}>
+        <TextInput
+          ref={inputRef}
+          style={styles.editor}
+          value={text}
+          onChangeText={onChangeText}
+          multiline
+          placeholder="Start typing. Don't stop."
+          placeholderTextColor={palette.textMuted}
+          textAlignVertical="top"
+          autoCorrect
+          autoCapitalize="sentences"
+        />
+      </RNAnimated.View>
+    </Animated.View>
   );
 }
 
