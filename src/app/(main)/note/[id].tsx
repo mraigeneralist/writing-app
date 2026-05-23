@@ -1,13 +1,12 @@
 import { Feather } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { RichText, useEditorBridge } from '@10play/tentap-editor';
@@ -18,6 +17,29 @@ import { NotionToolbar } from '@/components/NotionToolbar';
 import { notionEditorCss } from '@/lib/editor-styles';
 import { supabase } from '@/lib/supabase';
 import { palette } from '@/theme';
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function stripTags(s: string) {
+  return s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+}
+
+// Build the editor's initial content from a saved title + body.
+function buildInitial(title: string, html: string) {
+  const body = html?.trim() || '<p></p>';
+  return `<h1>${escapeHtml(title || '')}</h1>${body}`;
+}
+
+// Split editor HTML into title (first h1) + body (everything else).
+function splitDoc(fullHtml: string) {
+  const m = fullHtml.match(/^<h1[^>]*>([\s\S]*?)<\/h1>([\s\S]*)$/);
+  if (m) {
+    return { title: stripTags(m[1]), body: m[2] };
+  }
+  return { title: '', body: fullHtml };
+}
 
 export default function NoteEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -79,11 +101,9 @@ function Editor({
   onDelete: () => void;
 }) {
   const router = useRouter();
-  const [title, setTitle] = useState(initial.title);
   const [savedTitle, setSavedTitle] = useState(initial.title);
   const [savedHtml, setSavedHtml] = useState(initial.html);
   const [saving, setSaving] = useState(false);
-  const titleRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const keyboard = useAnimatedKeyboard();
 
@@ -94,7 +114,7 @@ function Editor({
   const editor = useEditorBridge({
     autofocus: false,
     avoidIosKeyboard: true,
-    initialContent: initial.html || '<p></p>',
+    initialContent: buildInitial(initial.title, initial.html),
   });
 
   useEffect(() => {
@@ -107,21 +127,22 @@ function Editor({
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      const html = await editor.getHTML();
-      if (html === savedHtml && title === savedTitle) return;
+      const fullHtml = await editor.getHTML();
+      const { title, body } = splitDoc(fullHtml);
+      if (title === savedTitle && body === savedHtml) return;
       setSaving(true);
       const { error } = await supabase
         .from('notes')
-        .update({ title, content: { html }, updated_at: new Date().toISOString() })
+        .update({ title, content: { html: body }, updated_at: new Date().toISOString() })
         .eq('id', noteId);
       setSaving(false);
       if (!error) {
-        setSavedHtml(html);
         setSavedTitle(title);
+        setSavedHtml(body);
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [title, savedTitle, savedHtml, noteId, editor]);
+  }, [savedTitle, savedHtml, noteId, editor]);
 
   return (
     <>
@@ -138,39 +159,6 @@ function Editor({
             </Pressable>
           </View>
         </View>
-        <TextInput
-          ref={titleRef}
-          style={styles.title}
-          placeholder="Untitled"
-          placeholderTextColor="#C5C4C0"
-          value={title}
-          onChangeText={async (text) => {
-            if (text.includes('\n')) {
-              setTitle(text.replace(/\n/g, ''));
-              titleRef.current?.blur();
-              const currentHtml = await editor.getHTML();
-              const isBodyEmpty =
-                !currentHtml ||
-                currentHtml === '<p></p>' ||
-                currentHtml.replace(/<p>\s*<\/p>/g, '').trim() === '';
-              if (isBodyEmpty) {
-                setTimeout(() => editor.focus(), 30);
-              } else {
-                // Prepend an empty paragraph and place cursor inside it (Notion behavior).
-                editor.setContent('<p></p>' + currentHtml);
-                setTimeout(() => {
-                  editor.setSelection(1, 1);
-                  editor.focus();
-                }, 60);
-              }
-            } else {
-              setTitle(text);
-            }
-          }}
-          multiline
-          scrollEnabled={false}
-          blurOnSubmit={false}
-        />
         <View style={styles.body}>
           <RichText
             editor={editor}
@@ -198,16 +186,5 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   deleteText: { color: palette.danger, fontSize: 14, fontWeight: '500' },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
-    lineHeight: 42,
-    color: palette.text,
-    paddingHorizontal: 24,
-    paddingTop: 4,
-    paddingBottom: 6,
-    backgroundColor: palette.bg,
-    letterSpacing: -0.5,
-  },
   body: { flex: 1, backgroundColor: palette.bg, paddingHorizontal: 24 },
 });

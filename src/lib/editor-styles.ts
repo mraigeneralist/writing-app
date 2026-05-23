@@ -2,6 +2,32 @@
 // All sizing/spacing values are tuned to mimic the feel of Notion's mobile editor.
 
 export const notionEditorCss = `
+  /* Title — the first h1 of the document acts as the page title (Notion-style) */
+  .ProseMirror > h1:first-child {
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    margin: 0 0 14px;
+    color: #37352F;
+  }
+  .ProseMirror > h1:first-child.is-empty::before,
+  .ProseMirror > h1:first-child:empty::before {
+    content: 'Untitled';
+    color: #C5C4C0;
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
+  .ProseMirror > h1:first-child + p.is-empty::before,
+  .ProseMirror > h1:first-child + p:empty::before {
+    content: 'Start writing…';
+    color: #C5C4C0;
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI Variable', 'Segoe UI', Roboto, sans-serif;
     font-size: 17px;
