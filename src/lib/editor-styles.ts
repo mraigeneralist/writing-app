@@ -11,10 +11,16 @@ export const notionEditorCss = `
     margin: 0 0 14px;
     color: #37352F;
   }
-  /* Placeholder: 'Untitled' on the first (title) h1 when it has no text.
-     Covers truly empty h1 and h1 that contains only ProseMirror's trailing <br>. */
+  /* Placeholder: 'Untitled' on the first (title) h1 when it has no text. */
   .ProseMirror > h1:first-child.is-empty::before,
-  .ProseMirror > h1:first-child:empty::before,
+  .ProseMirror > h1:first-child:empty::before {
+    content: 'Untitled';
+    color: #C5C4C0;
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
+  /* :has() lives in its own rule so older WebViews don't drop the rule above. */
   .ProseMirror > h1:first-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
     content: 'Untitled';
     color: #C5C4C0;

@@ -118,7 +118,7 @@ function Editor({
   });
 
   useEffect(() => {
-    const attempts = [200, 500, 1000, 2000];
+    const attempts = [0, 50, 100, 200, 400, 800, 1500];
     const timeouts = attempts.map((ms) =>
       setTimeout(() => editor.injectCSS(notionEditorCss, 'notion-styles'), ms)
     );
@@ -165,15 +165,6 @@ function Editor({
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
             overScrollMode="never"
-            injectedJavaScriptBeforeContentLoaded={`
-              (function() {
-                var style = document.createElement('style');
-                style.id = 'notion-styles-early';
-                style.innerHTML = ${JSON.stringify(notionEditorCss)};
-                (document.head || document.documentElement).appendChild(style);
-              })();
-              true;
-            `}
           />
         </View>
         <NotionToolbar editor={editor} />
