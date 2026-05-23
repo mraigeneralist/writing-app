@@ -1,5 +1,5 @@
 import { Feather } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -64,6 +64,7 @@ function buildRows(ideas: Idea[]): Row[] {
 }
 
 export default function IdeaCaptureScreen() {
+  const router = useRouter();
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -119,16 +120,15 @@ export default function IdeaCaptureScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerStyle: { backgroundColor: palette.bg },
-          headerShadowVisible: false,
-          contentStyle: { backgroundColor: palette.bg },
-          headerTitle: 'Ideas',
-          headerTitleStyle: { fontSize: 17, fontWeight: '700', color: palette.text },
-        }}
-      />
-      <Animated.View style={[styles.page, pageStyle]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Animated.View style={[styles.page, pageStyle, { paddingTop: insets.top }]}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color={palette.text} />
+          </Pressable>
+          <Text style={styles.topTitle}>Ideas</Text>
+          <View style={{ width: 22 }} />
+        </View>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={palette.textMuted} />
@@ -195,6 +195,15 @@ export default function IdeaCaptureScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: palette.bg },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  backBtn: { padding: 4 },
+  topTitle: { fontSize: 16, fontWeight: '700', color: palette.text },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 12, flexGrow: 1 },
 

@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -77,6 +78,7 @@ function Editor({
   initial: { title: string; html: string };
   onDelete: () => void;
 }) {
+  const router = useRouter();
   const [title, setTitle] = useState(initial.title);
   const [savedTitle, setSavedTitle] = useState(initial.title);
   const [savedHtml, setSavedHtml] = useState(initial.html);
@@ -122,23 +124,19 @@ function Editor({
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerStyle: { backgroundColor: palette.bg },
-          headerShadowVisible: false,
-          contentStyle: { backgroundColor: palette.bg },
-          headerTitle: '',
-          headerRight: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-              {saving && <ActivityIndicator size="small" color={palette.textMuted} />}
-              <Pressable onPress={onDelete} hitSlop={8}>
-                <Text style={{ color: palette.danger, fontSize: 14 }}>Delete</Text>
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
-      <Animated.View style={[styles.page, pageStyle]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <Animated.View style={[styles.page, pageStyle, { paddingTop: insets.top }]}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color={palette.text} />
+          </Pressable>
+          <View style={styles.topRight}>
+            {saving && <ActivityIndicator size="small" color={palette.textMuted} />}
+            <Pressable onPress={onDelete} hitSlop={8}>
+              <Text style={styles.deleteText}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
         <TextInput
           style={styles.title}
           placeholder="Untitled"
@@ -166,6 +164,16 @@ function Editor({
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.bg },
   page: { flex: 1, backgroundColor: palette.bg },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  backBtn: { padding: 4 },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  deleteText: { color: palette.danger, fontSize: 14, fontWeight: '500' },
   title: {
     fontSize: 34,
     fontWeight: '700',
