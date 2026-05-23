@@ -114,14 +114,8 @@ function Editor({
     return () => clearInterval(interval);
   }, [title, savedTitle, savedHtml, noteId, editor]);
 
-  function onTitleChange(text: string) {
-    if (text.includes('\n')) {
-      // User pressed Enter inside the title — move focus into the editor.
-      setTitle(text.replace(/\n/g, ''));
-      setTimeout(() => editor.focus(), 0);
-      return;
-    }
-    setTitle(text);
+  function onTitleSubmit() {
+    editor.focus();
   }
 
   return (
@@ -151,9 +145,9 @@ function Editor({
           placeholder="Untitled"
           placeholderTextColor="#C5C4C0"
           value={title}
-          onChangeText={onTitleChange}
-          multiline
-          scrollEnabled={false}
+          onChangeText={setTitle}
+          onSubmitEditing={onTitleSubmit}
+          returnKeyType="next"
           blurOnSubmit={false}
         />
         <View style={styles.body}>
