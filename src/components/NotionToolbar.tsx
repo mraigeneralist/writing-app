@@ -230,11 +230,11 @@ function decodeBase64Polyfill(b64: string): string {
 
 const styles = StyleSheet.create({
   bar: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: space.md,
+    paddingVertical: 6,
     backgroundColor: palette.bg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: palette.border,

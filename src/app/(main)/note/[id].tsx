@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Keyboard,
   Pressable,
   StyleSheet,
   Text,
@@ -16,8 +15,6 @@ import { NotionToolbar } from '@/components/NotionToolbar';
 import { notionEditorCss } from '@/lib/editor-styles';
 import { supabase } from '@/lib/supabase';
 import { palette } from '@/theme';
-
-const TOOLBAR_HEIGHT = 52;
 
 export default function NoteEditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -82,24 +79,12 @@ function Editor({
   const [savedTitle, setSavedTitle] = useState(initial.title);
   const [savedHtml, setSavedHtml] = useState(initial.html);
   const [saving, setSaving] = useState(false);
-  const [kbHeight, setKbHeight] = useState(0);
 
   const editor = useEditorBridge({
     autofocus: false,
     avoidIosKeyboard: true,
     initialContent: initial.html || '<p></p>',
   });
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', (e) =>
-      setKbHeight(e.endCoordinates.height)
-    );
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKbHeight(0));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   useEffect(() => {
     const attempts = [200, 500, 1000, 2000];
@@ -127,10 +112,6 @@ function Editor({
     return () => clearInterval(interval);
   }, [title, savedTitle, savedHtml, noteId, editor]);
 
-  function onTitleSubmit() {
-    editor.focus();
-  }
-
   return (
     <>
       <Stack.Screen
@@ -156,11 +137,11 @@ function Editor({
           placeholderTextColor="#C5C4C0"
           value={title}
           onChangeText={setTitle}
-          onSubmitEditing={onTitleSubmit}
+          onSubmitEditing={() => editor.focus()}
           returnKeyType="next"
           blurOnSubmit={false}
         />
-        <View style={[styles.body, { marginBottom: TOOLBAR_HEIGHT + kbHeight }]}>
+        <View style={styles.body}>
           <RichText
             editor={editor}
             showsVerticalScrollIndicator={false}
@@ -168,9 +149,7 @@ function Editor({
             overScrollMode="never"
           />
         </View>
-        <View style={[styles.toolbarFloat, { bottom: kbHeight, height: TOOLBAR_HEIGHT }]}>
-          <NotionToolbar editor={editor} />
-        </View>
+        <NotionToolbar editor={editor} />
       </View>
     </>
   );
@@ -191,10 +170,4 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   body: { flex: 1, backgroundColor: palette.bg, paddingHorizontal: 24 },
-  toolbarFloat: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    backgroundColor: palette.bg,
-  },
 });
