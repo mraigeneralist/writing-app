@@ -2,21 +2,25 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Animated as RNAnimated,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { palette, radius, space, type as t } from '@/theme';
 
-const IDLE_LIMIT_MS = 3000;
-const FADE_DURATION_MS = 1000;
+const IDLE_GRACE_MS = 1500;   // text stays full opacity for this long after last keystroke
+const IDLE_WIPE_MS = 5000;    // by this point text is fully gone
+
 const DURATIONS = [
   { label: '1 min', minutes: 1 },
   { label: '3 min', minutes: 3 },
@@ -35,21 +39,22 @@ export default function DangerScreen() {
   const [remaining, setRemaining] = useState(minutes * 60);
 
   const lastKeyRef = useRef<number>(Date.now());
-  const opacity = useRef(new RNAnimated.Value(1)).current;
-  const fadeAnimRef = useRef<RNAnimated.CompositeAnimation | null>(null);
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const keyboard = useAnimatedKeyboard();
+  const textOpacity = useSharedValue(1);
 
   const pageStyle = useAnimatedStyle(() => ({
     paddingBottom: Math.max(keyboard.height.value, insets.bottom),
   }));
 
+  const editorOpacityStyle = useAnimatedStyle(() => ({ opacity: textOpacity.value }));
+
   function start() {
     setText('');
     setRemaining(minutes * 60);
     lastKeyRef.current = Date.now();
-    opacity.setValue(1);
+    textOpacity.value = 1;
     setPhase('writing');
     setTimeout(() => inputRef.current?.focus(), 100);
   }
@@ -71,36 +76,29 @@ export default function DangerScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  // Idle watchdog: every 200ms, check if user has been idle > 3s. If so, fade out.
+  // Idle watchdog: continuously map idle time to opacity so the writer
+  // sees their words dim gradually as a warning before being wiped.
   useEffect(() => {
     if (phase !== 'writing') return;
     const id = setInterval(() => {
       const idle = Date.now() - lastKeyRef.current;
-      if (idle > IDLE_LIMIT_MS && !fadeAnimRef.current) {
-        fadeAnimRef.current = RNAnimated.timing(opacity, {
-          toValue: 0,
-          duration: FADE_DURATION_MS,
-          useNativeDriver: true,
-        });
-        fadeAnimRef.current.start(({ finished }) => {
-          if (finished) {
-            setText('');
-            setPhase('wiped');
-          }
-          fadeAnimRef.current = null;
-        });
+      if (idle <= IDLE_GRACE_MS) {
+        textOpacity.value = 1;
+      } else if (idle >= IDLE_WIPE_MS) {
+        textOpacity.value = 0;
+        setText('');
+        setPhase('wiped');
+      } else {
+        const progress = (idle - IDLE_GRACE_MS) / (IDLE_WIPE_MS - IDLE_GRACE_MS);
+        textOpacity.value = 1 - progress;
       }
-    }, 200);
+    }, 60);
     return () => clearInterval(id);
-  }, [phase, opacity]);
+  }, [phase, textOpacity]);
 
   function onChangeText(v: string) {
     lastKeyRef.current = Date.now();
-    if (fadeAnimRef.current) {
-      fadeAnimRef.current.stop();
-      fadeAnimRef.current = null;
-    }
-    opacity.setValue(1);
+    textOpacity.value = 1;
     setText(v);
   }
 
@@ -228,7 +226,7 @@ export default function DangerScreen() {
         </Pressable>
       </View>
 
-      <RNAnimated.View style={[styles.editorWrap, { opacity }]}>
+      <Animated.View style={[styles.editorWrap, editorOpacityStyle]}>
         <TextInput
           ref={inputRef}
           style={styles.editor}
@@ -241,7 +239,7 @@ export default function DangerScreen() {
           autoCorrect
           autoCapitalize="sentences"
         />
-      </RNAnimated.View>
+      </Animated.View>
     </Animated.View>
   );
 }
