@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -83,6 +83,7 @@ function Editor({
   const [savedTitle, setSavedTitle] = useState(initial.title);
   const [savedHtml, setSavedHtml] = useState(initial.html);
   const [saving, setSaving] = useState(false);
+  const titleRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const keyboard = useAnimatedKeyboard();
 
@@ -138,6 +139,7 @@ function Editor({
           </View>
         </View>
         <TextInput
+          ref={titleRef}
           style={styles.title}
           placeholder="Untitled"
           placeholderTextColor="#C5C4C0"
@@ -145,7 +147,8 @@ function Editor({
           onChangeText={(text) => {
             if (text.includes('\n')) {
               setTitle(text.replace(/\n/g, ''));
-              setTimeout(() => editor.focus(), 0);
+              titleRef.current?.blur();
+              setTimeout(() => editor.focus(), 30);
             } else {
               setTitle(text);
             }
