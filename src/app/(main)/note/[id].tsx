@@ -111,6 +111,12 @@ function Editor({
     paddingBottom: Math.max(keyboard.height.value, insets.bottom),
   }));
 
+  // Toolbar only appears when the keyboard is up — collapses to 0 height otherwise.
+  const toolbarStyle = useAnimatedStyle(() => ({
+    height: keyboard.height.value > 0 ? 48 : 0,
+    overflow: 'hidden' as const,
+  }));
+
   const editor = useEditorBridge({
     autofocus: false,
     avoidIosKeyboard: true,
@@ -167,7 +173,9 @@ function Editor({
             overScrollMode="never"
           />
         </View>
-        <NotionToolbar editor={editor} />
+        <Animated.View style={toolbarStyle}>
+          <NotionToolbar editor={editor} />
+        </Animated.View>
       </Animated.View>
     </>
   );
