@@ -14,6 +14,7 @@ import {
 import { RichText, useEditorBridge } from '@10play/tentap-editor';
 
 import { NotionToolbar } from '@/components/NotionToolbar';
+import { notionEditorCss } from '@/lib/editor-styles';
 import { supabase } from '@/lib/supabase';
 import { palette } from '@/theme';
 
@@ -87,6 +88,16 @@ function Editor({
     initialContent: initial.html || '<p></p>',
   });
 
+  // Inject Notion-style CSS into the editor WebView.
+  useEffect(() => {
+    const attempts = [200, 500, 1000, 2000];
+    const timeouts = attempts.map((ms) =>
+      setTimeout(() => editor.injectCSS(notionEditorCss, 'notion-styles'), ms)
+    );
+    return () => timeouts.forEach(clearTimeout);
+  }, [editor]);
+
+  // Autosave every 2s
   useEffect(() => {
     const interval = setInterval(async () => {
       const html = await editor.getHTML();
@@ -127,7 +138,7 @@ function Editor({
         <TextInput
           style={styles.title}
           placeholder="Untitled"
-          placeholderTextColor={palette.textMuted}
+          placeholderTextColor="#C5C4C0"
           value={title}
           onChangeText={setTitle}
           multiline
@@ -155,9 +166,10 @@ const styles = StyleSheet.create({
     lineHeight: 42,
     color: palette.text,
     paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 4,
+    paddingBottom: 6,
     backgroundColor: palette.bg,
+    letterSpacing: -0.5,
   },
   body: { flex: 1, backgroundColor: palette.bg, paddingHorizontal: 24 },
 });
