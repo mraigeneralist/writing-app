@@ -142,9 +142,16 @@ function Editor({
           placeholder="Untitled"
           placeholderTextColor="#C5C4C0"
           value={title}
-          onChangeText={setTitle}
-          onSubmitEditing={() => editor.focus()}
-          returnKeyType="next"
+          onChangeText={(text) => {
+            if (text.includes('\n')) {
+              setTitle(text.replace(/\n/g, ''));
+              setTimeout(() => editor.focus(), 0);
+            } else {
+              setTitle(text);
+            }
+          }}
+          multiline
+          scrollEnabled={false}
           blurOnSubmit={false}
         />
         <View style={styles.body}>

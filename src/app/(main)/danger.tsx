@@ -127,10 +127,11 @@ export default function DangerScreen() {
       .split('\n')
       .map((l) => l.replace(/</g, '&lt;'))
       .join('</p><p>')}</p>`;
+    const draftTitle = `${new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })} draft`;
     const { data } = await supabase
       .from('notes')
       .insert({
-        title: `Danger session — ${new Date().toLocaleDateString()}`,
+        title: draftTitle,
         content: { html },
         user_id: userId,
       })
