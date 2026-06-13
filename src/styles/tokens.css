@@ -1,0 +1,27 @@
+/* DESIGN.md color tokens as space-separated RGB channels.
+   Light values on :root, dark values under .dark on <html>. */
+:root {
+  --bg: 250 249 246; /* #FAF9F6 */
+  --surface: 255 255 255; /* #FFFFFF */
+  --surface-2: 242 240 234; /* #F2F0EA */
+  --border: 231 228 220; /* #E7E4DC */
+  --text: 28 27 25; /* #1C1B19 */
+  --text-2: 107 106 102; /* #6B6A66 */
+  --text-3: 154 152 143; /* #9A988F */
+  --accent: 91 87 199; /* #5B57C7 */
+  --accent-soft: 236 235 250; /* #ECEBFA */
+  --focus-warn: 194 96 59; /* #C2603B */
+}
+
+.dark {
+  --bg: 22 21 26; /* #16151A */
+  --surface: 33 31 38; /* #211F26 */
+  --surface-2: 42 40 50; /* #2A2832 */
+  --border: 52 50 60; /* #34323C */
+  --text: 236 234 227; /* #ECEAE3 */
+  --text-2: 166 163 155; /* #A6A39B */
+  --text-3: 117 115 108; /* #75736C */
+  --accent: 139 134 230; /* #8B86E6 */
+  --accent-soft: 46 43 82; /* #2E2B52 */
+  --focus-warn: 224 128 92; /* #E0805C */
+}

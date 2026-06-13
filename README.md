@@ -1,65 +1,44 @@
-# Writeflow
+# Loom
 
-A Notion-style mobile writing app for Android with three core features:
+A personal **capture → organize → create** app. Text ideas to yourself, refine
+what you learn into categorized notes, and turn that material into written
+content — all in one calm, writerly tool.
 
-1. **Idea capture** — quick frictionless notes.
-2. **Danger Mode** — timed writing session. Stop typing for 3 seconds and your text fades to nothing. Inspired by *The Most Dangerous Writing App*.
-3. **Notion-style editor** for longer drafts, with cloud sync.
+See [`AGENTS.md`](./AGENTS.md) for product scope and engineering conventions, and
+[`DESIGN.md`](./DESIGN.md) for the visual system.
 
-Built with **React Native + Expo**, **TypeScript**, **Expo Router**, **Tiptap** (`@10play/tentap-editor`), and **Supabase** (Postgres + Auth).
+## Stack
 
----
+React 18 · TypeScript · Vite · Tailwind CSS · React Router · TanStack Query ·
+Supabase (Postgres + Auth + RLS) · TipTap · vite-plugin-pwa. All free tier.
+**No AI features.**
 
 ## Getting started
 
-### Prerequisites
-- Node.js 20+ (`node --version`)
-- Git (`git --version`)
-- Free accounts: [Supabase](https://supabase.com), [Expo](https://expo.dev)
-- **Expo Go** app on your Android phone (Play Store)
-
-### Setup
-
-```powershell
-git clone https://github.com/mraigeneralist/writing-app.git
-cd writing-app
+```bash
 npm install
-copy .env.example .env
-# then fill in Supabase URL + anon key in .env
+cp .env.example .env.local   # then fill in your Supabase URL + anon key
+npm run dev
 ```
 
-### Set up Supabase
+### Supabase setup
 
-1. Create a new project at https://supabase.com (free tier).
-2. Open **SQL Editor** -> paste contents of [`supabase/schema.sql`](supabase/schema.sql) -> Run.
-3. **Project Settings -> API** -> copy `Project URL` and `anon public` key into your `.env`.
-4. **Authentication -> Providers** -> make sure **Email** is enabled.
+1. Create a free project at [supabase.com](https://supabase.com).
+2. **Settings → API** → copy the **Project URL** and **anon public key** into
+   `.env.local` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+3. Run the migration in `supabase/migrations/` via the SQL Editor (or
+   `npx supabase db push`).
+4. **Authentication → URL Configuration** → add `http://localhost:5173` to the
+   redirect URLs.
 
-### Run on your phone
+## Scripts
 
-```powershell
-npx expo start
-```
+| Command             | Description                               |
+| ------------------- | ----------------------------------------- |
+| `npm run dev`       | Local dev server                          |
+| `npm run build`     | Production build (`tsc -b && vite build`) |
+| `npm run preview`   | Preview the production build              |
+| `npm run lint`      | ESLint                                    |
+| `npm run typecheck` | `tsc --noEmit`                            |
 
-Scan the QR code with Expo Go.
-
----
-
-## Project structure
-
-```
-src/
-  app/                 # Expo Router screens (file-based routing)
-  components/          # Reusable components
-  constants/theme.ts   # Colors, spacing, fonts
-  hooks/
-  lib/supabase.ts      # Supabase client
-supabase/
-  schema.sql           # Database schema (run once in Supabase SQL editor)
-```
-
-## Build status
-
-Currently in **Phase 1** - project scaffolded, dependencies installed. Next: auth screens, then home screen, then the editor, then Danger Mode.
-
-See the implementation plan for the full roadmap.
+`lint`, `typecheck`, and `build` must all pass before a task is "done".
