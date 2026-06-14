@@ -78,3 +78,19 @@
     pointer-events: none;
   }
 }
+
+/* Focus-mode fade. Opacity snaps back instantly when .is-fading is removed
+   (no transition in the base rule); the erase timer in useFocusTimers must
+   match these durations. */
+.focus-text {
+  opacity: 1;
+}
+.focus-text.is-fading {
+  opacity: 0;
+  transition: opacity 2400ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-text.is-fading {
+    transition-duration: 600ms;
+  }
+}

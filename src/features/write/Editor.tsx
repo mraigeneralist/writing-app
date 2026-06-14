@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, PanelRightOpen } from 'lucide-react'
+import { ArrowLeft, PanelRightOpen, Zap } from 'lucide-react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { useDocument, useUpdateDocument } from '@/lib/queries/documents'
 import { CategoryCombobox } from '@/features/categories/CategoryCombobox'
@@ -8,6 +8,7 @@ import type { TipTapDoc } from '@/lib/types'
 import { editorExtensions, wordCount } from './editorConfig'
 import { Toolbar } from './Toolbar'
 import { NotesSidebar } from './NotesSidebar'
+import { FocusMode } from './FocusMode'
 import { useAutosave } from './useAutosave'
 
 export default function Editor() {
@@ -20,6 +21,7 @@ export default function Editor() {
   const [rev, setRev] = useState(0)
   const [words, setWords] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [focusOpen, setFocusOpen] = useState(false)
   const ready = useRef(false)
 
   const editor = useEditor({
@@ -86,6 +88,13 @@ export default function Editor() {
         <div className="flex items-center gap-3">
           <span className="text-meta text-text-3">{words} words</span>
           <button
+            onClick={() => setFocusOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-input border border-border px-3 py-1.5 text-meta text-text-2 hover:bg-surface-2"
+          >
+            <Zap size={16} />
+            focus
+          </button>
+          <button
             onClick={() => setSidebarOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-input border border-border px-3 py-1.5 text-meta text-text-2 hover:bg-surface-2"
           >
@@ -123,6 +132,21 @@ export default function Editor() {
         editor={editor}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+      />
+
+      <FocusMode
+        open={focusOpen}
+        onClose={() => setFocusOpen(false)}
+        onSave={(text) => {
+          if (!editor) return
+          const paragraphs = text.split('\n').map((line) =>
+            line.trim()
+              ? { type: 'paragraph', content: [{ type: 'text', text: line }] }
+              : { type: 'paragraph' },
+          )
+          editor.chain().focus('end').insertContent(paragraphs).run()
+          setRev((r) => r + 1) // trigger autosave
+        }}
       />
     </div>
   )
