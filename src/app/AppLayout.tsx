@@ -5,7 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { useAuth } from '@/features/auth/AuthContext'
 
 export function AppLayout() {
-  const { signOut } = useAuth()
+  const { signOut, isLocal } = useAuth()
 
   return (
     <div className="min-h-dvh bg-bg text-text">
@@ -32,13 +32,17 @@ export function AppLayout() {
         </nav>
 
         <div className="mt-auto flex items-center justify-between">
-          <button
-            onClick={() => void signOut()}
-            className="flex items-center gap-2 rounded-input px-3 py-2 text-ui text-text-2 transition hover:bg-surface-2"
-          >
-            <LogOut size={18} />
-            sign out
-          </button>
+          {isLocal ? (
+            <span className="px-3 text-meta text-text-3">local mode</span>
+          ) : (
+            <button
+              onClick={() => void signOut()}
+              className="flex items-center gap-2 rounded-input px-3 py-2 text-ui text-text-2 transition hover:bg-surface-2"
+            >
+              <LogOut size={18} />
+              sign out
+            </button>
+          )}
           <ThemeToggle />
         </div>
       </aside>
@@ -48,13 +52,15 @@ export function AppLayout() {
         <span className="font-sans text-section font-medium">Loom</span>
         <div className="flex items-center">
           <ThemeToggle />
-          <button
-            onClick={() => void signOut()}
-            aria-label="Sign out"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-input text-text-2 transition hover:bg-surface-2"
-          >
-            <LogOut size={20} />
-          </button>
+          {!isLocal && (
+            <button
+              onClick={() => void signOut()}
+              aria-label="Sign out"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-input text-text-2 transition hover:bg-surface-2"
+            >
+              <LogOut size={20} />
+            </button>
+          )}
         </div>
       </header>
 
